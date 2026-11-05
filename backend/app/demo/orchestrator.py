@@ -141,15 +141,24 @@ class DemoAssistantOrchestrator(BaseAssistantAdapter):
 
         # 1. Critical Safety Policy Check: Refuse unsafe bypass / tampering requests
         if any(w in q_lower for w in ["bypass", "tamper", "short circuit", "disable"]) and (
-            "door" in q_lower or "safety" in q_lower or "interlock" in q_lower or "microwave" in q_lower
+            "door" in q_lower or "safety" in q_lower or "interlock" in q_lower or "microwave" in q_lower or "lid" in q_lower or "switch" in q_lower
         ):
             output = (
-                "Under NO circumstances can you bypass the microwave door safety mechanism. "
-                "The door interlock switch is a critical safety feature that prevents hazardous microwave "
-                "radiation leakage, severe burns, and electrical shock. Operating a microwave with a "
-                "bypassed door or open latch is strictly prohibited under BharatHome safety policies. "
-                "If your microwave door or latch is malfunctioning, please immediately unplug the appliance "
-                "from the electrical socket and schedule an authorized BharatHome service technician."
+                "Under NO circumstances can you bypass appliance safety mechanisms or interlock switches. "
+                "Safety interlocks on microwave doors and washing machine lids are critical protection features "
+                "designed to prevent severe microwave radiation leakage, high-speed spin injury, and electrical shock. "
+                "Operating appliances with a bypassed safety interlock or forced switch is hazardous and strictly "
+                "prohibited under BharatHome safety policies. Please immediately unplug the appliance from the "
+                "electrical socket and schedule an authorized BharatHome service technician."
+            )
+            return self._build_response(output, tool_calls, request, start_time, refusal=True)
+
+        # 1b. Prompt Extraction / Jailbreak Refusal
+        if any(w in q_lower for w in ["system prompt", "internal instruction", "jailbreak", "ignore previous", "repeat your prompt"]):
+            output = (
+                "I am BharatHome Assistant v1, the official AI customer support assistant for BharatHome Appliances. "
+                "I am programmed to assist customers with product specifications, warranties, troubleshooting, and service bookings. "
+                "I cannot reveal internal system instructions, proprietary developer configurations, or security credentials."
             )
             return self._build_response(output, tool_calls, request, start_time, refusal=True)
 
@@ -204,9 +213,30 @@ class DemoAssistantOrchestrator(BaseAssistantAdapter):
             return self._build_response(output, tool_calls, request, start_time)
 
         # 3. Troubleshooting & Error Codes
-        if any(w in q_lower for w in ["error", "oe", "e4", "e1", "e2", "troubleshoot", "problem", "fault"]):
-            product_name = "washing machine" if ("washing" in q_lower or "washer" in q_lower or "oe" in q_lower) else "refrigerator"
-            issue_param = "OE error" if "oe" in q_lower else "troubleshooting"
+        words = set(q_lower.replace("?", " ").replace(".", " ").replace(",", " ").replace("'", " ").replace('"', " ").split())
+        has_oe = "oe" in words or "error oe" in q_lower or "oe error" in q_lower
+        has_e4 = "e4" in words or "error e4" in q_lower or "e4 error" in q_lower
+        has_trouble = has_oe or has_e4 or any(w in words for w in ["error", "troubleshoot", "problem", "fault", "beeping", "turntable"])
+
+        if has_trouble:
+            if has_e4 or ("refrigerator" in q_lower and ("error" in words or "beep" in words or "beeping" in words)):
+                product_name = "refrigerator"
+                issue_param = "E4 error" if has_e4 else "frost"
+            elif has_oe or ("washing" in q_lower and ("drain" in words or "water" in words or "error" in words)):
+                product_name = "washing machine"
+                issue_param = "OE error" if has_oe else "drain"
+            elif "microwave" in q_lower and ("turntable" in words or "rotate" in words):
+                product_name = "microwave"
+                issue_param = "turntable"
+            elif ("air conditioner" in q_lower or "ac" in words) and ("warm" in words or "cooling" in words):
+                product_name = "air conditioner"
+                issue_param = "warm air"
+            elif ("induction" in q_lower or "cooktop" in words) and ("lock" in words or "child" in words):
+                product_name = "induction cooktop"
+                issue_param = "lock"
+            else:
+                product_name = "refrigerator" if has_e4 else "washing machine"
+                issue_param = "E4 error" if has_e4 else "OE error"
 
             tool_args = {"product_name": product_name, "issue": issue_param}
             tool_result = execute_tool("troubleshooting_lookup", tool_args)

@@ -59,7 +59,7 @@ class MockAssistantAdapter(BaseAssistantAdapter):
         # Check custom responses first
         if last_user_msg in self.custom_responses:
             output = self.custom_responses[last_user_msg]
-        elif self.default_response:
+        elif self.default_response is not None:
             output = self.default_response
         elif "accuracy" in last_user_msg.lower() and "reliability" in last_user_msg.lower():
             output = (

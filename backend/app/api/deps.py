@@ -14,10 +14,6 @@ def get_or_create_default_project(db: Session) -> Project:
         select(Project).where(Project.slug == DEFAULT_PROJECT_SLUG)
     )
     if not project:
-        # Fall back to any first project
-        project = db.scalar(select(Project).order_by(Project.created_at))
-
-    if not project:
         project = Project(
             name="BharatHome AI Support",
             slug=DEFAULT_PROJECT_SLUG,
