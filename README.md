@@ -108,3 +108,21 @@ To verify database persistence and relationship integrity:
 # Run the complete integration test suite:
 & backend/.venv/Scripts/python.exe -m unittest backend/tests/test_database_integration.py -v
 ```
+
+## Assistant Adapter System
+
+Aegis includes a common asynchronous adapter system (`backend/app/adapters/`) supporting three assistant providers:
+1. `MockAssistantAdapter` (`mock`): Zero-dependency deterministic offline assistant with token and tool call simulation.
+2. `OllamaAssistantAdapter` (`ollama`): Communicates with local Ollama `/api/chat` without downloading models.
+3. `HttpApiAssistantAdapter` (`http`): Interacts with OpenAI-compatible Chat Completions endpoints with token/tool extraction and error handling.
+
+To test and verify the adapters:
+
+```powershell
+# Run the adapter verification script (tests all 3 adapters with canonical question):
+& backend/.venv/Scripts/python.exe backend/scripts/test_adapters.py
+
+# Run adapter unit tests:
+& backend/.venv/Scripts/python.exe -m unittest backend/tests/test_adapters_unit.py -v
+```
+
