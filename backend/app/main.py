@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import health, datasets, test_cases
+from app.api.routes import health, datasets, test_cases, demo_assistant
 
 app = FastAPI(title="Aegis API", version="0.1.0")
 
@@ -17,4 +17,5 @@ app.add_middleware(
 app.include_router(health.router, tags=["health"])
 app.include_router(datasets.router, prefix="/api/datasets", tags=["datasets"])
 app.include_router(test_cases.router, prefix="/api", tags=["test_cases"])
+app.include_router(demo_assistant.router, prefix="/api/demo", tags=["demo_assistant"])
 
