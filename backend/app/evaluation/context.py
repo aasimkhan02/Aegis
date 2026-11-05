@@ -17,6 +17,7 @@ class TestCaseData:
     expected_output: dict[str, Any] | None = None
     expected_behavior: str | None = None
     retrieval_context: list[Any] | dict[str, Any] | None = None
+    ground_truth_context: list[Any] | dict[str, Any] | None = None
     tags: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     is_enabled: bool = True
@@ -31,6 +32,7 @@ class TestCaseData:
             expected_output=tc.expected_output,
             expected_behavior=tc.expected_behavior,
             retrieval_context=tc.retrieval_context,
+            ground_truth_context=getattr(tc, "ground_truth_context", None),
             tags=list(tc.tags) if isinstance(tc.tags, list) else [],
             metadata=dict(getattr(tc, "metadata_", {}) or {}),
             is_enabled=tc.is_enabled,
@@ -45,6 +47,7 @@ class TestCaseData:
             "expected_output": self.expected_output,
             "expected_behavior": self.expected_behavior,
             "retrieval_context": self.retrieval_context,
+            "ground_truth_context": self.ground_truth_context,
             "tags": self.tags,
             "metadata": self.metadata,
             "is_enabled": self.is_enabled,
@@ -61,6 +64,7 @@ class EvaluationContext:
     expected_output: dict[str, Any] | None = None
     expected_behavior: str | None = None
     retrieval_context: list[Any] | dict[str, Any] | None = None
+    ground_truth_context: list[Any] | dict[str, Any] | None = None
     tags: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     actual_response: AssistantResponse | None = None

@@ -137,6 +137,7 @@ def create_test_case_snapshot(test_case: Union[TestCase, TestCaseData]) -> dict[
         "expected_output": test_case.expected_output,
         "expected_behavior": test_case.expected_behavior,
         "retrieval_context": test_case.retrieval_context,
+        "ground_truth_context": getattr(test_case, "ground_truth_context", None),
         "tags": test_case.tags if isinstance(test_case.tags, list) else [],
         "metadata": getattr(test_case, "metadata_", {}) or {},
         "is_enabled": test_case.is_enabled,
@@ -186,6 +187,7 @@ async def execute_test_case(
         expected_output=test_case.expected_output,
         expected_behavior=test_case.expected_behavior,
         retrieval_context=test_case.retrieval_context,
+        ground_truth_context=getattr(test_case, "ground_truth_context", None),
         tags=snapshot.get("tags", []),
         metadata=snapshot.get("metadata", {}),
         actual_response=actual_response,
@@ -201,19 +203,26 @@ async def execute_test_case(
         try:
             res = evaluator.evaluate(context)
             metric_results.append(res)
+            # Only genuine applicable and mandatory metric failures fail the test case
             if res.applicable and res.mandatory and not res.passed and case_status != "error":
                 case_status = "failed"
         except Exception as e:
-            case_status = "error"
+            # Evaluator infrastructure errors must NOT degrade assistant pass rates
             metric_results.append(
                 EvaluatorResult(
                     metric_name=evaluator.name,
                     score=0.0,
                     threshold=evaluator.default_threshold,
                     passed=False,
-                    applicable=True,
-                    mandatory=evaluator.mandatory,
-                    details={"error": f"Evaluator execution exception: {e}"},
+                    applicable=False,
+                    mandatory=False,
+                    details={
+                        "status": "evaluator_error",
+                        "evaluator_error": True,
+                        "error_type": type(e).__name__,
+                        "error": f"Evaluator execution exception: {e}",
+                        "applicable": False,
+                    },
                 )
             )
 

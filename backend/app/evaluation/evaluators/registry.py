@@ -1,16 +1,27 @@
 """Evaluator registry and discovery helper."""
 
-from typing import Type
+from typing import Any, Type
 
 from app.evaluation.evaluators.base import BaseEvaluator
 from app.evaluation.evaluators.expected_output import ExpectedOutputEvaluator
 from app.evaluation.evaluators.response_presence import ResponsePresenceEvaluator
 from app.evaluation.evaluators.tool_usage import ToolUsageEvaluator
+from app.evaluation.deepeval.evaluators import (
+    DeepEvalAnswerRelevancyEvaluator,
+    DeepEvalFaithfulnessEvaluator,
+    DeepEvalHallucinationEvaluator,
+    DeepEvalTechnicalSafetyEvaluator,
+)
+from app.evaluation.deepeval import get_deepeval_evaluators
 
 _EVALUATOR_REGISTRY: dict[str, Type[BaseEvaluator]] = {
     "response_presence": ResponsePresenceEvaluator,
     "expected_output": ExpectedOutputEvaluator,
     "tool_usage": ToolUsageEvaluator,
+    "deepeval_answer_relevancy": DeepEvalAnswerRelevancyEvaluator,
+    "deepeval_faithfulness": DeepEvalFaithfulnessEvaluator,
+    "deepeval_hallucination": DeepEvalHallucinationEvaluator,
+    "deepeval_technical_safety": DeepEvalTechnicalSafetyEvaluator,
 }
 
 
@@ -35,4 +46,25 @@ def get_default_evaluators() -> list[BaseEvaluator]:
         ExpectedOutputEvaluator(),
         ToolUsageEvaluator(),
     ]
+
+
+def resolve_evaluators(config: dict[str, Any] | None = None) -> list[BaseEvaluator]:
+    """Resolve active evaluators for an evaluation run based on run configuration.
+
+    - Default: returns standard deterministic evaluators.
+    - If config contains 'enable_deepeval': True, appends the 4 DeepEval evaluators.
+    - If config contains explicit 'evaluators': list of registered evaluator names, resolves those.
+    """
+    cfg = dict(config or {})
+
+    # Check for explicit evaluator selection
+    evaluator_names = cfg.get("evaluators")
+    if isinstance(evaluator_names, list) and evaluator_names:
+        return [get_evaluator(name) for name in evaluator_names]
+
+    evaluators = get_default_evaluators()
+    if cfg.get("enable_deepeval") is True or cfg.get("enable_llm_judge") is True:
+        evaluators.extend(get_deepeval_evaluators())
+
+    return evaluators
 

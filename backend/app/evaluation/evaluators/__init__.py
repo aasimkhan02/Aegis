@@ -6,6 +6,7 @@ from app.evaluation.evaluators.registry import (
     get_default_evaluators,
     get_evaluator,
     register_evaluator,
+    resolve_evaluators,
 )
 from app.evaluation.evaluators.response_presence import ResponsePresenceEvaluator
 from app.evaluation.evaluators.tool_usage import ToolUsageEvaluator
@@ -19,5 +20,6 @@ __all__ = [
     "get_default_evaluators",
     "get_evaluator",
     "register_evaluator",
+    "resolve_evaluators",
 ]
 

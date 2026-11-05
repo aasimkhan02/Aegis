@@ -47,6 +47,12 @@ class TestCase(Base):
         default=list,
         server_default=text("'[]'::jsonb"),
     )
+    ground_truth_context: Mapped[list | dict | None] = mapped_column(
+        JSONB,
+        nullable=True,
+        default=list,
+        server_default=text("'[]'::jsonb"),
+    )
     tags: Mapped[list | dict] = mapped_column(
         JSONB,
         nullable=False,

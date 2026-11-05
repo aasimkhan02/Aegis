@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.evaluation.context import TestCaseData
-from app.evaluation.evaluators.registry import get_default_evaluators
+from app.evaluation.evaluators.registry import get_default_evaluators, resolve_evaluators
 from app.evaluation.exceptions import (
     EvaluationConfigError,
     EvaluationExecutionError,
@@ -231,10 +231,10 @@ async def execute_evaluation_run(
         eval_run.total_cases = len(test_cases_data)
         db.commit()
 
-        # Instantiate adapter and evaluators
+        # Instantiate adapter and evaluators based on run config
         system_prompt = assistant_version.system_prompt
         adapter = resolve_assistant_adapter(assistant_version)
-        evaluators = get_default_evaluators()
+        evaluators = resolve_evaluators(eval_run.config)
     except Exception as e:
         logger.exception("Failed to initialize EvaluationRun '%s': %s", evaluation_run_id, e)
         db.rollback()
@@ -253,7 +253,12 @@ async def execute_evaluation_run(
     # --------------------------------------------------------------------------
     # Step 2: Execute test cases with controlled concurrency
     # --------------------------------------------------------------------------
-    effective_concurrency = max(1, min(max_concurrency, 3))
+    # Enforce sequential execution if DeepEval LLM judge is active to conserve host CPU/RAM
+    has_deepeval = any(isinstance(getattr(e, "name", None), str) and getattr(e, "name").startswith("deepeval_") for e in evaluators)
+    if has_deepeval:
+        effective_concurrency = 1
+    else:
+        effective_concurrency = max(1, min(max_concurrency, 3))
     semaphore = asyncio.Semaphore(effective_concurrency)
 
     async def _process_single_case(tc_data: TestCaseData) -> str:

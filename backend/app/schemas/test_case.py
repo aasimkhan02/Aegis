@@ -19,6 +19,10 @@ class TestCaseBase(BaseModel):
         default_factory=list,
         description="Relevant retrieval passages or documents",
     )
+    ground_truth_context: Union[list[Any], dict[str, Any], str, None] = Field(
+        default_factory=list,
+        description="Curated, trusted ground-truth reference information",
+    )
     tags: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(
         default_factory=dict,
@@ -60,6 +64,7 @@ class TestCaseUpdate(BaseModel):
     expected_output: Union[dict[str, Any], list[Any], str, None] = None
     expected_behavior: str | None = None
     retrieval_context: Union[list[Any], dict[str, Any], str, None] = None
+    ground_truth_context: Union[list[Any], dict[str, Any], str, None] = None
     tags: list[str] | None = None
     metadata: dict[str, Any] | None = Field(default=None, validation_alias="metadata_")
     is_enabled: bool | None = None

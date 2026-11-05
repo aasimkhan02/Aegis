@@ -33,6 +33,7 @@ def _to_response(tc: TestCase, db: Session) -> TestCaseResponse:
         expected_output=tc.expected_output,
         expected_behavior=tc.expected_behavior,
         retrieval_context=tc.retrieval_context or [],
+        ground_truth_context=getattr(tc, "ground_truth_context", None) or [],
         tags=tc.tags if isinstance(tc.tags, list) else [],
         metadata_=tc.metadata_,
         is_enabled=tc.is_enabled,
@@ -113,6 +114,7 @@ def create_test_case(
         expected_output=payload.expected_output if isinstance(payload.expected_output, (dict, list, type(None))) else {"output": payload.expected_output},
         expected_behavior=payload.expected_behavior,
         retrieval_context=payload.retrieval_context or [],
+        ground_truth_context=payload.ground_truth_context or [],
         tags=payload.tags,
         metadata=payload.metadata,
         is_enabled=payload.is_enabled,
@@ -163,6 +165,8 @@ def update_test_case(
         tc.expected_behavior = payload.expected_behavior
     if payload.retrieval_context is not None:
         tc.retrieval_context = payload.retrieval_context
+    if payload.ground_truth_context is not None:
+        tc.ground_truth_context = payload.ground_truth_context
     if payload.tags is not None:
         tc.tags = payload.tags
     if payload.metadata is not None:
