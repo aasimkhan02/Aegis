@@ -195,34 +195,27 @@ async def execute_test_case(
 
     # Compute metrics with evaluators
     metric_results: list[EvaluatorResult] = []
-    case_status = "passed"
+    case_status = "error" if error_message is not None else "passed"
 
-    if error_message is not None:
-        case_status = "error"
-        for evaluator in evaluators:
-            if evaluator.name == "response_presence":
-                metric_results.append(evaluator.evaluate(context))
-                break
-    else:
-        for evaluator in evaluators:
-            try:
-                res = evaluator.evaluate(context)
-                metric_results.append(res)
-                if res.applicable and res.mandatory and not res.passed:
-                    case_status = "failed"
-            except Exception as e:
-                case_status = "error"
-                metric_results.append(
-                    EvaluatorResult(
-                        metric_name=evaluator.name,
-                        score=0.0,
-                        threshold=evaluator.default_threshold,
-                        passed=False,
-                        applicable=True,
-                        mandatory=evaluator.mandatory,
-                        details={"error": f"Evaluator execution exception: {e}"},
-                    )
+    for evaluator in evaluators:
+        try:
+            res = evaluator.evaluate(context)
+            metric_results.append(res)
+            if res.applicable and res.mandatory and not res.passed and case_status != "error":
+                case_status = "failed"
+        except Exception as e:
+            case_status = "error"
+            metric_results.append(
+                EvaluatorResult(
+                    metric_name=evaluator.name,
+                    score=0.0,
+                    threshold=evaluator.default_threshold,
+                    passed=False,
+                    applicable=True,
+                    mandatory=evaluator.mandatory,
+                    details={"error": f"Evaluator execution exception: {e}"},
                 )
+            )
 
     return TestCaseExecutionResult(
         test_case_id=test_case.id,

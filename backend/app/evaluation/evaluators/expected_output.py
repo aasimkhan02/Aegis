@@ -1,10 +1,16 @@
-"""Expected output evaluator with support for keyword match, exact match, contains, and json."""
+"""Expected output evaluator with support for keyword match, exact match, contains, json, and negative assertions."""
 
 import json
+import re
 from typing import Any
 
 from app.evaluation.context import EvaluationContext
 from app.evaluation.evaluators.base import BaseEvaluator, EvaluatorResult
+
+
+def _normalize_ws(text: str) -> str:
+    """Normalize text by collapsing multiple whitespace characters and stripping."""
+    return re.sub(r"\s+", " ", text).strip().lower()
 
 
 class ExpectedOutputEvaluator(BaseEvaluator):
@@ -31,9 +37,20 @@ class ExpectedOutputEvaluator(BaseEvaluator):
 
         output = context.actual_response.output
         output_lower = output.lower()
+        norm_output = _normalize_ws(output)
 
         eval_cfg = context.metadata.get("evaluation", {})
         expected = context.expected_output or {}
+
+        # Extract prohibited assertions (must_not_include)
+        prohibited_raw = eval_cfg.get("must_not_include") or expected.get("must_not_include") or []
+        prohibited: list[str] = [str(p) for p in prohibited_raw] if isinstance(prohibited_raw, list) else []
+
+        found_prohibited: list[str] = []
+        for p in prohibited:
+            norm_p = _normalize_ws(p)
+            if norm_p and norm_p in norm_output:
+                found_prohibited.append(p)
 
         # Determine evaluation mode: explicit match_type, or detect from expected_output keys
         match_type = eval_cfg.get("match_type") or expected.get("match_type")
@@ -46,6 +63,24 @@ class ExpectedOutputEvaluator(BaseEvaluator):
         if match_type == "keywords" or (must_include and isinstance(must_include, list)):
             keywords = must_include if isinstance(must_include, list) else []
             if not keywords:
+                # If no positive keywords, but negative assertions are present:
+                if prohibited:
+                    passed = len(found_prohibited) == 0
+                    score = 1.0 if passed else 0.0
+                    return EvaluatorResult(
+                        metric_name=self.name,
+                        score=score,
+                        threshold=threshold,
+                        passed=passed,
+                        applicable=True,
+                        mandatory=self.mandatory,
+                        details={
+                            "mode": "negative_only",
+                            "prohibited_count": len(prohibited),
+                            "found_prohibited": found_prohibited,
+                        },
+                    )
+
                 return EvaluatorResult(
                     metric_name=self.name,
                     score=1.0,
@@ -59,23 +94,19 @@ class ExpectedOutputEvaluator(BaseEvaluator):
             matched: list[str] = []
             missed: list[str] = []
             for kw in keywords:
-                if str(kw).lower() in output_lower:
+                norm_kw = _normalize_ws(str(kw))
+                if norm_kw in norm_output:
                     matched.append(str(kw))
                 else:
                     missed.append(str(kw))
 
             match_ratio = round(len(matched) / len(keywords), 4)
-            passed = match_ratio >= threshold
-
-            # Check optional prohibited keywords (must_not_include)
-            prohibited = expected.get("must_not_include", [])
-            found_prohibited = [p for p in prohibited if str(p).lower() in output_lower]
-            if found_prohibited:
-                passed = False
+            passed = (match_ratio >= threshold) and (len(found_prohibited) == 0)
+            score = 0.0 if found_prohibited else match_ratio
 
             return EvaluatorResult(
                 metric_name=self.name,
-                score=match_ratio,
+                score=score,
                 threshold=threshold,
                 passed=passed,
                 applicable=True,
@@ -98,7 +129,7 @@ class ExpectedOutputEvaluator(BaseEvaluator):
         if match_type == "exact" or "exact" in expected:
             expected_text = str(expected.get("exact") or expected.get("text", "")).strip()
             actual_text = output.strip()
-            is_match = actual_text == expected_text
+            is_match = (actual_text == expected_text) and (len(found_prohibited) == 0)
             score = 1.0 if is_match else 0.0
             return EvaluatorResult(
                 metric_name=self.name,
@@ -112,6 +143,7 @@ class ExpectedOutputEvaluator(BaseEvaluator):
                     "expected": expected_text,
                     "actual_length": len(actual_text),
                     "is_match": is_match,
+                    "found_prohibited": found_prohibited,
                 },
             )
 
@@ -120,7 +152,7 @@ class ExpectedOutputEvaluator(BaseEvaluator):
         # ----------------------------------------------------------------------
         if match_type == "contains" or "contains" in expected:
             substring = str(expected.get("contains") or expected.get("substring", "")).strip()
-            is_present = substring.lower() in output_lower
+            is_present = (substring.lower() in output_lower) and (len(found_prohibited) == 0)
             score = 1.0 if is_present else 0.0
             return EvaluatorResult(
                 metric_name=self.name,
@@ -133,6 +165,7 @@ class ExpectedOutputEvaluator(BaseEvaluator):
                     "mode": "contains",
                     "expected_substring": substring,
                     "is_present": is_present,
+                    "found_prohibited": found_prohibited,
                 },
             )
 
@@ -143,7 +176,7 @@ class ExpectedOutputEvaluator(BaseEvaluator):
             expected_json = expected.get("json", {})
             try:
                 actual_json = json.loads(output)
-                is_equal = actual_json == expected_json
+                is_equal = (actual_json == expected_json) and (len(found_prohibited) == 0)
                 score = 1.0 if is_equal else 0.0
                 return EvaluatorResult(
                     metric_name=self.name,
@@ -156,6 +189,7 @@ class ExpectedOutputEvaluator(BaseEvaluator):
                         "mode": "json_equal",
                         "is_equal": is_equal,
                         "expected_json": expected_json,
+                        "found_prohibited": found_prohibited,
                     },
                 )
             except Exception as e:
@@ -168,6 +202,26 @@ class ExpectedOutputEvaluator(BaseEvaluator):
                     mandatory=self.mandatory,
                     details={"mode": "json_equal", "error": f"Failed to parse output as JSON: {e}"},
                 )
+
+        # ----------------------------------------------------------------------
+        # Mode 5: Pure negative assertions (only must_not_include specified)
+        # ----------------------------------------------------------------------
+        if prohibited:
+            passed = len(found_prohibited) == 0
+            score = 1.0 if passed else 0.0
+            return EvaluatorResult(
+                metric_name=self.name,
+                score=score,
+                threshold=threshold,
+                passed=passed,
+                applicable=True,
+                mandatory=self.mandatory,
+                details={
+                    "mode": "negative_only",
+                    "prohibited_count": len(prohibited),
+                    "found_prohibited": found_prohibited,
+                },
+            )
 
         # ----------------------------------------------------------------------
         # Non-applicable: No machine-readable assertion found

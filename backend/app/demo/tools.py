@@ -133,8 +133,8 @@ def warranty_lookup(product_name: str) -> dict[str, Any]:
             "status": "success",
             "product": "BharatHome FrostFree Refrigerator",
             "comprehensive_warranty": "1 Year on entire appliance",
-            "extended_component_warranty": "10 Years on Digital Inverter Compressor part",
-            "coverage_details": "Covers all internal electrical and mechanical defects in Year 1. In Years 2-10, replacement compressor is free.",
+            "extended_component_warranty": "10-year compressor warranty (10 Years on Digital Inverter Compressor part)",
+            "coverage_details": "Covers all internal electrical and mechanical defects in Year 1. In Years 2-10, provides free compressor replacement; customer pays labor charge and gas charging.",
             "exclusions": [
                 "Plastic door shelves and vegetable crispers",
                 "Glass shelves broken by external impact",
@@ -265,10 +265,10 @@ def troubleshooting_lookup(product_name: str, issue: str) -> dict[str, Any]:
             "fault": "E4 Error (Defrost Sensor / Excess Frost Fault)",
             "severity": "medium",
             "steps": [
-                "Turn off wall power switch for 5 minutes, then power back on to reboot microcontroller.",
+                "Turn off wall power and perform a 5-minute power cycle reset before restarting the refrigerator.",
                 "Verify freezer door closes completely and rubber gasket is clean and free of ice crust.",
                 "Ensure vents inside freezer are not choked by stacked frozen food packages.",
-                "If E4 recurs after 30 minutes, sensor replacement by technician is required.",
+                "If E4 recurs after 30 minutes, arrange an authorized service technician to inspect and replace the defrost sensor.",
             ],
             "safety_warning": "Do not use sharp knives or ice picks to scrape frost from cooling coils.",
         }
@@ -283,7 +283,7 @@ def troubleshooting_lookup(product_name: str, issue: str) -> dict[str, Any]:
                 "Unplug microwave and remove glass tray.",
                 "Clean the roller ring and wheels under warm water to remove grease and food crumbs.",
                 "Check that the center drive coupler is firmly attached to the motor shaft.",
-                "Realign glass tray so that the central indents engage the rotating drive hub.",
+                "Realign glass tray so that the central indents engage the rotating drive coupler for smooth rotation.",
             ],
             "safety_warning": "Safe to operate for short intervals, but uneven heating will occur without rotation.",
         }
@@ -295,12 +295,26 @@ def troubleshooting_lookup(product_name: str, issue: str) -> dict[str, Any]:
             "fault": "Blowing Warm Air / Inadequate Cooling",
             "severity": "medium",
             "steps": [
-                "Ensure remote control is in 'Cool' mode (Snowflake symbol) and set at least 2°C below room temperature.",
-                "Wait 3 to 5 minutes for compressor protection safety delay to initiate cooling.",
-                "Open indoor unit front panel and wash dust mesh filters with tap water.",
+                "Ensure remote control is in 'Cool mode' (Snowflake symbol) and set at least 2°C below room temperature.",
+                "Wait 3 to 5 minutes for compressor delay protection to initiate cooling.",
+                "Open indoor unit front panel and wash dust air filter mesh with tap water.",
                 "Ensure outdoor unit has at least 2 feet of clear ventilation clearance.",
             ],
             "safety_warning": "Do not spray water directly on the outdoor electrical junction box.",
+        }
+
+    elif ("geyser" in p or "water heater" in p) and ("lukewarm" in iss or "warm" in iss or "hot" in iss):
+        return {
+            "status": "success",
+            "product": "BharatHome InstantBoil Geyser",
+            "fault": "Insufficient Hot Water / Lukewarm Output",
+            "severity": "medium",
+            "steps": [
+                "Check the temperature dial on the front panel and ensure it is set toward High.",
+                "In hard water areas, mineral scaling deposits on the copper heating element reduce thermal heat transfer.",
+                "If temperature dial is set correctly and water is barely warm, the internal thermostat or heating element may require descaling or service.",
+            ],
+            "safety_warning": "Do not attempt to open the water heater casing while plugged in.",
         }
 
     elif ("induction" in p or "cooktop" in p) and ("lock" in iss or "padlock" in iss or "button" in iss):
@@ -310,9 +324,9 @@ def troubleshooting_lookup(product_name: str, issue: str) -> dict[str, Any]:
             "fault": "Child Lock Active / Keypad Unresponsive",
             "severity": "low",
             "steps": [
-                "Locate the Key / Lock icon on the glass touch panel.",
-                "Press and hold the Lock icon firmly for 3 to 5 continuous seconds.",
-                "Listen for the double-beep notification; the red lock LED will turn off.",
+                "Locate the padlock icon on the glass touch panel.",
+                "Press and hold the padlock icon firmly for 3 seconds continuously.",
+                "Listen for the double-beep confirmation chime; the red child lock LED will turn off.",
             ],
             "safety_warning": "Keep surface clean and dry before touching capacitive sensor buttons.",
         }
