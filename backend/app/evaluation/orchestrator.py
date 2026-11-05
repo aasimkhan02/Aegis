@@ -253,9 +253,13 @@ async def execute_evaluation_run(
     # --------------------------------------------------------------------------
     # Step 2: Execute test cases with controlled concurrency
     # --------------------------------------------------------------------------
-    # Enforce sequential execution if DeepEval LLM judge is active to conserve host CPU/RAM
-    has_deepeval = any(isinstance(getattr(e, "name", None), str) and getattr(e, "name").startswith("deepeval_") for e in evaluators)
-    if has_deepeval:
+    # Enforce sequential execution if DeepEval or Ragas LLM judge is active to conserve host CPU/RAM
+    has_llm_judge = any(
+        isinstance(getattr(e, "name", None), str)
+        and (getattr(e, "name").startswith("deepeval_") or getattr(e, "name").startswith("ragas_"))
+        for e in evaluators
+    )
+    if has_llm_judge:
         effective_concurrency = 1
     else:
         effective_concurrency = max(1, min(max_concurrency, 3))

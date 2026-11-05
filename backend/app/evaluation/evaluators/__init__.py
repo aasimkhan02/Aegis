@@ -10,6 +10,12 @@ from app.evaluation.evaluators.registry import (
 )
 from app.evaluation.evaluators.response_presence import ResponsePresenceEvaluator
 from app.evaluation.evaluators.tool_usage import ToolUsageEvaluator
+from app.evaluation.ragas import (
+    RagasContextPrecisionEvaluator,
+    RagasContextRecallEvaluator,
+    RagasFaithfulnessEvaluator,
+    get_ragas_evaluators,
+)
 
 __all__ = [
     "BaseEvaluator",
@@ -21,5 +27,9 @@ __all__ = [
     "get_evaluator",
     "register_evaluator",
     "resolve_evaluators",
+    "RagasFaithfulnessEvaluator",
+    "RagasContextPrecisionEvaluator",
+    "RagasContextRecallEvaluator",
+    "get_ragas_evaluators",
 ]
 

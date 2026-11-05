@@ -13,6 +13,12 @@ from app.evaluation.deepeval.evaluators import (
     DeepEvalTechnicalSafetyEvaluator,
 )
 from app.evaluation.deepeval import get_deepeval_evaluators
+from app.evaluation.ragas import get_ragas_evaluators
+from app.evaluation.ragas.evaluators import (
+    RagasContextPrecisionEvaluator,
+    RagasContextRecallEvaluator,
+    RagasFaithfulnessEvaluator,
+)
 
 _EVALUATOR_REGISTRY: dict[str, Type[BaseEvaluator]] = {
     "response_presence": ResponsePresenceEvaluator,
@@ -22,6 +28,9 @@ _EVALUATOR_REGISTRY: dict[str, Type[BaseEvaluator]] = {
     "deepeval_faithfulness": DeepEvalFaithfulnessEvaluator,
     "deepeval_hallucination": DeepEvalHallucinationEvaluator,
     "deepeval_technical_safety": DeepEvalTechnicalSafetyEvaluator,
+    "ragas_faithfulness": RagasFaithfulnessEvaluator,
+    "ragas_context_precision": RagasContextPrecisionEvaluator,
+    "ragas_context_recall": RagasContextRecallEvaluator,
 }
 
 
@@ -65,6 +74,9 @@ def resolve_evaluators(config: dict[str, Any] | None = None) -> list[BaseEvaluat
     evaluators = get_default_evaluators()
     if cfg.get("enable_deepeval") is True or cfg.get("enable_llm_judge") is True:
         evaluators.extend(get_deepeval_evaluators())
+    if cfg.get("enable_ragas") is True:
+        ragas_names = cfg.get("ragas_metrics")
+        evaluators.extend(get_ragas_evaluators(metric_names=ragas_names))
 
     return evaluators
 

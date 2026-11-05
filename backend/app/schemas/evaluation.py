@@ -15,6 +15,8 @@ class EvaluationConfigPayload(BaseModel):
     max_concurrency: int = Field(default=1, ge=1, le=3, description="Concurrency limit (default: 1)")
     fail_fast: bool = Field(default=False, description="Abort run upon first test failure")
     enable_deepeval: bool = Field(default=False, description="Enable DeepEval LLM-as-a-judge metrics")
+    enable_ragas: bool = Field(default=False, description="Enable Ragas RAG evaluation metrics")
+    ragas_metrics: list[str] | None = Field(default=None, description="Optional explicit subset of Ragas metric names")
     evaluators: list[str] | None = Field(default=None, description="Optional explicit list of evaluator names")
     extra: dict[str, Any] = Field(default_factory=dict)
 
