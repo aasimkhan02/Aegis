@@ -126,3 +126,34 @@ To test and verify the adapters:
 & backend/.venv/Scripts/python.exe -m unittest backend/tests/test_adapters_unit.py -v
 ```
 
+## Dataset Management & Golden Dataset
+
+Aegis provides full dataset management APIs and a React UI for customer support AI evaluation.
+
+### BharatHome Appliances Golden Dataset
+A 40-case evaluation fixture across 8 customer-support categories:
+1. Product troubleshooting
+2. Installation and setup
+3. Warranty and returns
+4. Billing and payments
+5. Product safety
+6. Customer complaints
+7. Privacy and sensitive information
+8. Adversarial prompts and policy violations
+
+To seed or re-seed the golden dataset into PostgreSQL:
+
+```powershell
+& backend/.venv/Scripts/python.exe backend/scripts/seed_golden_dataset.py
+```
+
+### Run Dataset Management Tests
+```powershell
+# Run the dataset management test suite:
+& backend/.venv/Scripts/python.exe -m unittest backend/tests/test_dataset_management.py -v
+
+# Run the entire test suite (33 tests):
+& backend/.venv/Scripts/python.exe -m unittest discover -s backend/tests -p "test_*.py" -v
+```
+
+

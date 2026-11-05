@@ -41,6 +41,12 @@ class TestCase(Base):
         nullable=True,
     )
     expected_behavior: Mapped[str | None] = mapped_column(Text, nullable=True)
+    retrieval_context: Mapped[list | dict | None] = mapped_column(
+        JSONB,
+        nullable=True,
+        default=list,
+        server_default=text("'[]'::jsonb"),
+    )
     tags: Mapped[list | dict] = mapped_column(
         JSONB,
         nullable=False,

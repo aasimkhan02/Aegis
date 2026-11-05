@@ -9,6 +9,21 @@ from app.schemas.adapter import (
     TokenUsage,
     ToolCall,
 )
+from app.schemas.dataset import (
+    DatasetBase,
+    DatasetCreate,
+    DatasetExportResponse,
+    DatasetImportRequest,
+    DatasetResponse,
+    DatasetUpdate,
+    ImportResultResponse,
+)
+from app.schemas.test_case import (
+    TestCaseBase,
+    TestCaseCreate,
+    TestCaseResponse,
+    TestCaseUpdate,
+)
 
 __all__ = [
     "AssistantResponse",
@@ -18,5 +33,17 @@ __all__ = [
     "MessageRole",
     "TokenUsage",
     "ToolCall",
+    "DatasetBase",
+    "DatasetCreate",
+    "DatasetUpdate",
+    "DatasetResponse",
+    "DatasetImportRequest",
+    "ImportResultResponse",
+    "DatasetExportResponse",
+    "TestCaseBase",
+    "TestCaseCreate",
+    "TestCaseUpdate",
+    "TestCaseResponse",
 ]
+
 
