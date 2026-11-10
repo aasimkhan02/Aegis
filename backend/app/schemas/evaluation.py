@@ -77,6 +77,11 @@ class EvaluationRunResponse(BaseModel):
     passed_cases: int
     failed_cases: int
     config: dict[str, Any] = Field(default_factory=dict)
+    project_name: str | None = None
+    assistant_name: str | None = None
+    assistant_version_tag: str | None = None
+    dataset_name: str | None = None
+    pass_rate: float | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
     created_at: datetime

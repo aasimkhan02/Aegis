@@ -34,3 +34,8 @@ class EvaluationExecutionError(EvaluationError):
     """Raised when a catastrophic runtime failure interrupts an evaluation run."""
     pass
 
+
+class ComparisonError(EvaluationError):
+    """Raised when evaluation run comparison criteria are not met."""
+    pass
+

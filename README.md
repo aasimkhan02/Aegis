@@ -220,5 +220,33 @@ $env:PYTHONPATH='backend'; & "backend/.venv/Scripts/python.exe" -m unittest disc
 - **`status: "cli_not_found"`**: The `promptfoo` CLI binary was not detected in `PATH` or npm directories.
 - **`status: "error"`**: Subprocess crash, non-zero exit without JSON generation, or unparseable output.
 
+## Continuous Integration (GitHub Actions)
+
+Aegis includes an automated CI workflow defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+### Workflow Triggers
+- **Pushes** targeting the `main` branch.
+- **Pull Requests** targeting the `main` branch.
+
+### Pipeline Jobs & Checks
+
+| Job | Environment | Execution Steps & Verification |
+|---|---|---|
+| **Backend Test Suite** (`backend`) | Ubuntu Latest, Python 3.12, PostgreSQL 16 Service | 1. Provisions ephemeral PostgreSQL 16 container.<br>2. Installs cached dependencies from `backend/requirements.txt`.<br>3. Applies Alembic migrations (`alembic upgrade head`).<br>4. Runs full test suite (221 tests) including ORM integration, deterministic evaluators, security validators, multi-turn adapters, version comparison, and release quality gate rules. |
+| **Frontend Build & Typecheck** (`frontend`) | Ubuntu Latest, Node.js 20 | 1. Installs reproducible dependencies with `npm ci`.<br>2. Validates strict TypeScript compilation (`tsc -b`).<br>3. Compiles production Vite client bundle (`vite build`). |
+| **Promptfoo Adversarial & Quality Check** (`promptfoo`) | Ubuntu Latest, Python 3.12, Node.js 20 | 1. Installs backend dependencies for the Python adapter provider.<br>2. Executes deterministic Promptfoo CLI evaluation (`promptfoo eval -c backend/promptfoo/promptfooconfig.yaml --no-cache`).<br>3. Verifies 13 test assertions across normal inquiries, expected outputs, jailbreak defenses, prompt injection resistance, and adversarial defusing. |
+
+### What a Passing Workflow Verifies
+- **Reliable Development Lifecycle**: Both frontend and backend compile and build without warnings or type errors.
+- **Database Schema Integrity**: PostgreSQL migrations apply cleanly to a fresh database and all relational constraints hold.
+- **Safety & Regression Prevention**: Deterministic security validators (PII detection, system canary secrecy, forbidden terms, technical safety, policy compliance) pass without failures.
+- **Assistant Adapter Correctness**: Tool calls, multi-turn history, and evaluation comparison engines operate accurately.
+- **Promptfoo Assertions**: 100% of benchmark assertions pass on production assistant configurations.
+
+### Checks Intentionally Excluded from CI
+1. **Live External LLM Calls & Ollama Inference**: All CI evaluations and tests execute deterministically using mock adapters, regex/rule validators, and offline fixtures. Live LLM API calls and local Ollama daemons are intentionally excluded to ensure CI remains fast (<1 minute), reproducible, zero-cost, and resilient against network outages, API quotas, or hardware limitations.
+2. **Ad-hoc Cross-Run Release Gate against Production History**: The release quality gate engine logic and threshold rules are fully verified in `test_quality_gate.py` against isolated test fixtures. However, executing live comparisons against persistent production benchmark runs is excluded from ephemeral PR builds because CI runners do not host long-term historical database state.
+
+
 
 

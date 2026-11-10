@@ -1,32 +1,49 @@
 import { useEffect, useState } from 'react';
 import {
-  Activity,
-  ArrowUpRight,
-  BarChart3,
-  BookOpenCheck,
   ChevronDown,
-  CircleHelp,
   Database,
   FlaskConical,
+  FolderGit2,
   Gauge,
   Layers3,
-  Plus,
-  Search,
+  ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
+  Cpu,
+  ArrowUpRight,
+  CircleHelp,
 } from 'lucide-react';
 import { DatasetList } from './components/DatasetList';
 import { DatasetDetail } from './components/DatasetDetail';
+import { VersionComparison } from './components/VersionComparison';
+import { ReleaseQualityGate } from './components/ReleaseQualityGate';
+import { OverviewDashboard } from './components/OverviewDashboard';
+import { ProjectsList } from './components/ProjectsList';
+import { AssistantsList } from './components/AssistantsList';
+import { EvaluationRunsView } from './components/EvaluationRunsView';
+import { SecurityDashboard } from './components/SecurityDashboard';
+import { SettingsView } from './components/SettingsView';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 type Health = 'checking' | 'healthy' | 'unavailable';
-type NavTab = 'overview' | 'datasets';
+export type NavTab =
+  | 'overview'
+  | 'projects'
+  | 'assistants'
+  | 'datasets'
+  | 'runs'
+  | 'security'
+  | 'compare'
+  | 'quality_gate'
+  | 'settings';
 
 function App() {
   const [health, setHealth] = useState<Health>('checking');
   const [navTab, setNavTab] = useState<NavTab>('overview');
   const [activeDatasetId, setActiveDatasetId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [openExecuteRunModal, setOpenExecuteRunModal] = useState<boolean>(false);
 
   useEffect(() => {
     let active = true;
@@ -51,21 +68,57 @@ function App() {
 
   const statusText = health === 'healthy' ? 'Connected' : health === 'checking' ? 'Checking' : 'Offline';
 
+  const navigateTo = (tab: string, extraId?: string) => {
+    setActiveDatasetId(null);
+    if (tab === 'datasets') {
+      if (extraId) setActiveDatasetId(extraId);
+      setNavTab('datasets');
+    } else if (tab === 'runs') {
+      if (extraId) setSelectedRunId(extraId);
+      setNavTab('runs');
+    } else if (tab === 'assistants') {
+      if (extraId) setSelectedProjectId(extraId);
+      setNavTab('assistants');
+    } else if (tab === 'compare') {
+      setNavTab('compare');
+    } else if (tab === 'quality_gate') {
+      setNavTab('quality_gate');
+    } else if (tab === 'security') {
+      setNavTab('security');
+    } else if (tab === 'projects') {
+      setNavTab('projects');
+    } else if (tab === 'settings') {
+      setNavTab('settings');
+    } else {
+      setNavTab('overview');
+    }
+  };
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="#" onClick={() => { setNavTab('overview'); setActiveDatasetId(null); }}>
+        <a
+          className="brand"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            navigateTo('overview');
+          }}
+        >
           <span className="brand-mark"><ShieldCheck size={21} strokeWidth={2.2} /></span>
           <span>aegis<span className="brand-period">.</span></span>
         </a>
+
         <div className="workspace">
-          <div className="workspace-icon">N</div>
+          <div className="workspace-icon">A</div>
           <div className="workspace-copy">
-            <strong>Northstar AI</strong>
-            <span>Workspace</span>
+            <strong>Aegis Platform</strong>
+            <span>Enterprise Quality</span>
           </div>
           <ChevronDown size={15} />
         </div>
+
+        {/* WORKSPACE GROUP */}
         <span className="nav-label">WORKSPACE</span>
         <nav className="navigation">
           <a
@@ -73,46 +126,118 @@ function App() {
             href="#overview"
             onClick={(e) => {
               e.preventDefault();
-              setNavTab('overview');
-              setActiveDatasetId(null);
+              navigateTo('overview');
             }}
           >
             <Gauge size={17} />Overview
+          </a>
+          <a
+            className={`nav-item ${navTab === 'projects' ? 'active' : ''}`}
+            href="#projects"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateTo('projects');
+            }}
+          >
+            <FolderGit2 size={17} />Projects
+          </a>
+          <a
+            className={`nav-item ${navTab === 'assistants' ? 'active' : ''}`}
+            href="#assistants"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateTo('assistants');
+            }}
+          >
+            <Cpu size={17} />Assistants
           </a>
           <a
             className={`nav-item ${navTab === 'datasets' ? 'active' : ''}`}
             href="#datasets"
             onClick={(e) => {
               e.preventDefault();
-              setNavTab('datasets');
-              setActiveDatasetId(null);
+              navigateTo('datasets');
             }}
           >
             <Database size={17} />Datasets
           </a>
-          <a className="nav-item" href="#runs"><FlaskConical size={17} />Test runs</a>
-          <a className="nav-item" href="#"><Layers3 size={17} />Test suites</a>
-          <a className="nav-item" href="#"><BarChart3 size={17} />Analytics</a>
         </nav>
-        <span className="nav-label tools-label">MANAGE</span>
+
+        {/* EVALUATION GROUP */}
+        <span className="nav-label tools-label">EVALUATION</span>
         <nav className="navigation">
-          <a className="nav-item" href="#"><BookOpenCheck size={17} />Evaluations</a>
-          <a className="nav-item" href="#"><SlidersHorizontal size={17} />Settings</a>
+          <a
+            className={`nav-item ${navTab === 'runs' ? 'active' : ''}`}
+            href="#runs"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateTo('runs');
+            }}
+          >
+            <FlaskConical size={17} />Test Runs
+          </a>
+          <a
+            className={`nav-item ${navTab === 'security' ? 'active' : ''}`}
+            href="#security"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateTo('security');
+            }}
+          >
+            <ShieldAlert size={17} />Security
+          </a>
+          <a
+            className={`nav-item ${navTab === 'compare' ? 'active' : ''}`}
+            href="#compare"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateTo('compare');
+            }}
+          >
+            <Layers3 size={17} />Version Compare
+          </a>
+          <a
+            className={`nav-item ${navTab === 'quality_gate' ? 'active' : ''}`}
+            href="#quality-gate"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateTo('quality_gate');
+            }}
+          >
+            <ShieldCheck size={17} />Quality Gate
+          </a>
         </nav>
+
+        {/* SYSTEM CONFIGURATION */}
+        <span className="nav-label tools-label">SYSTEM</span>
+        <nav className="navigation">
+          <a
+            className={`nav-item ${navTab === 'settings' ? 'active' : ''}`}
+            href="#settings"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateTo('settings');
+            }}
+          >
+            <SlidersHorizontal size={17} />Settings
+          </a>
+        </nav>
+
         <div className="sidebar-bottom">
           <div className="help-card">
             <div className="help-icon"><CircleHelp size={17} /></div>
-            <strong>Getting started</strong>
-            <p>Learn the basics of evaluating your AI systems.</p>
-            <a href="#">Read the guide <ArrowUpRight size={13} /></a>
+            <strong>Aegis Evaluation Suite</strong>
+            <p>Unified quality, regression detection & deterministic safety gate.</p>
+            <a href="https://github.com" target="_blank" rel="noreferrer">
+              Documentation <ArrowUpRight size={13} />
+            </a>
           </div>
           <div className="user-row">
-            <div className="avatar">JD</div>
+            <div className="avatar">AE</div>
             <div className="user-copy">
-              <strong>Jordan Davis</strong>
-              <span>jordan@northstar.ai</span>
+              <strong>Quality Lead</strong>
+              <span>eval@aegis.ai</span>
             </div>
-            <ChevronDown size={15} />
           </div>
         </div>
       </aside>
@@ -120,10 +245,24 @@ function App() {
       <main className="main-content">
         <header className="topbar">
           <div className="breadcrumbs">
-            <span>Workspace</span>
+            <span>Aegis</span>
             <span className="crumb-divider">/</span>
             {navTab === 'overview' ? (
               <strong>Overview</strong>
+            ) : navTab === 'projects' ? (
+              <strong>Projects</strong>
+            ) : navTab === 'assistants' ? (
+              <strong>Assistants & Models</strong>
+            ) : navTab === 'runs' ? (
+              <strong>Evaluation Test Runs</strong>
+            ) : navTab === 'security' ? (
+              <strong>Security Intelligence</strong>
+            ) : navTab === 'compare' ? (
+              <strong>Version Comparison</strong>
+            ) : navTab === 'quality_gate' ? (
+              <strong>Release Quality Gate</strong>
+            ) : navTab === 'settings' ? (
+              <strong>Settings</strong>
             ) : activeDatasetId ? (
               <>
                 <a
@@ -144,14 +283,45 @@ function App() {
             )}
           </div>
           <div className="top-actions">
-            <div className={`connection ${health}`}><span className="status-dot" />API {statusText}</div>
-            <button className="icon-button" aria-label="Search"><Search size={17} /></button>
-            <div className="avatar top-avatar">JD</div>
+            <div className={`connection ${health}`}>
+              <span className="status-dot" />API {statusText}
+            </div>
+            <div className="avatar top-avatar">AE</div>
           </div>
         </header>
 
         <div className="page-wrap">
-          {navTab === 'datasets' ? (
+          {navTab === 'overview' && (
+            <OverviewDashboard
+              onNavigate={navigateTo}
+              onLaunchRunModal={() => {
+                setNavTab('runs');
+                setOpenExecuteRunModal(true);
+              }}
+            />
+          )}
+
+          {navTab === 'projects' && (
+            <ProjectsList
+              onNavigateToAssistants={(pId) => {
+                setSelectedProjectId(pId);
+                setNavTab('assistants');
+              }}
+              onNavigateToDatasets={() => setNavTab('datasets')}
+            />
+          )}
+
+          {navTab === 'assistants' && (
+            <AssistantsList
+              initialProjectId={selectedProjectId}
+              onLaunchEvaluation={(_id) => {
+                setNavTab('runs');
+                setOpenExecuteRunModal(true);
+              }}
+            />
+          )}
+
+          {navTab === 'datasets' && (
             activeDatasetId ? (
               <DatasetDetail
                 datasetId={activeDatasetId}
@@ -162,211 +332,47 @@ function App() {
                 onSelectDataset={(id) => setActiveDatasetId(id)}
               />
             )
-          ) : (
-            <>
-              <section className="welcome-row">
-                <div>
-                  <div className="eyebrow"><span className="eyebrow-line" />THURSDAY, OCTOBER 24, 2024</div>
-                  <h1>Good morning, Jordan <span className="wave">✳</span></h1>
-                  <p className="welcome-subtitle">Here's what's happening with your AI quality today.</p>
-                </div>
-                <button
-                  className="primary-button"
-                  onClick={() => {
-                    setNavTab('datasets');
-                    setActiveDatasetId(null);
-                  }}
-                >
-                  <Plus size={17} />Manage Datasets
-                </button>
-              </section>
-
-              <section className="stats-grid" aria-label="Workspace metrics">
-                <article className="stat-card">
-                  <div className="stat-top">
-                    <span className="stat-label">Total evaluations</span>
-                    <span className="stat-icon purple"><Activity size={17} /></span>
-                  </div>
-                  <div className="stat-value">1,284</div>
-                  <div className="stat-foot">
-                    <span className="trend">↗ 12.8%</span>
-                    <span>vs. last month</span>
-                  </div>
-                  <div className="sparkline purple-line"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>
-                </article>
-                <article className="stat-card">
-                  <div className="stat-top">
-                    <span className="stat-label">Quality score</span>
-                    <span className="stat-icon green"><Sparkles size={17} /></span>
-                  </div>
-                  <div className="stat-value">94.2<span className="value-unit">%</span></div>
-                  <div className="stat-foot">
-                    <span className="trend">↗ 2.4%</span>
-                    <span>vs. last month</span>
-                  </div>
-                  <div className="sparkline green-line"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>
-                </article>
-                <article className="stat-card">
-                  <div className="stat-top">
-                    <span className="stat-label">Security issues</span>
-                    <span className="stat-icon orange"><ShieldCheck size={17} /></span>
-                  </div>
-                  <div className="stat-value">3</div>
-                  <div className="stat-foot">
-                    <span className="issue-pill">Needs review</span>
-                    <span>across all models</span>
-                  </div>
-                  <div className="issue-bars"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>
-                </article>
-                <article className="stat-card">
-                  <div className="stat-top">
-                    <span className="stat-label">Active models</span>
-                    <span className="stat-icon blue"><Layers3 size={17} /></span>
-                  </div>
-                  <div className="stat-value">8</div>
-                  <div className="stat-foot">
-                    <span className="neutral-pill">+2 new</span>
-                    <span>this month</span>
-                  </div>
-                  <div className="model-dots"><i/><i/><i/><i/><i/><i/><i/><i/></div>
-                </article>
-              </section>
-
-              <section className="content-grid">
-                <article className="panel runs-panel" id="runs">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Recent test runs</h2>
-                      <p>Monitor the latest evaluation activity across your models.</p>
-                    </div>
-                    <button className="text-button" onClick={() => setNavTab('datasets')}>
-                      View Datasets <ArrowUpRight size={14}/>
-                    </button>
-                  </div>
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>RUN</th>
-                          <th>MODEL</th>
-                          <th>QUALITY SCORE</th>
-                          <th>STATUS</th>
-                          <th>WHEN</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td><span className="run-name"><span className="run-symbol violet"><FlaskConical size={15}/></span>Customer support v2</span></td>
-                          <td><span className="model-name">GPT-4o</span></td>
-                          <td><span className="score"><span className="score-track"><i style={{width:'96%'}}/></span>96.4%</span></td>
-                          <td><span className="badge passed"><i/>Passed</span></td>
-                          <td className="when">12 min ago</td>
-                          <td><button className="more-button" aria-label="More options">···</button></td>
-                        </tr>
-                        <tr>
-                          <td><span className="run-name"><span className="run-symbol teal"><ShieldCheck size={15}/></span>Prompt injection scan</span></td>
-                          <td><span className="model-name">Claude 3.5</span></td>
-                          <td><span className="score"><span className="score-track"><i style={{width:'87%'}}/></span>87.1%</span></td>
-                          <td><span className="badge review"><i/>Review</span></td>
-                          <td className="when">48 min ago</td>
-                          <td><button className="more-button" aria-label="More options">···</button></td>
-                        </tr>
-                        <tr>
-                          <td><span className="run-name"><span className="run-symbol amber"><BookOpenCheck size={15}/></span>Knowledge retrieval eval</span></td>
-                          <td><span className="model-name">Gemini 1.5 Pro</span></td>
-                          <td><span className="score"><span className="score-track"><i style={{width:'92%'}}/></span>92.8%</span></td>
-                          <td><span className="badge passed"><i/>Passed</span></td>
-                          <td className="when">2 hrs ago</td>
-                          <td><button className="more-button" aria-label="More options">···</button></td>
-                        </tr>
-                        <tr>
-                          <td><span className="run-name"><span className="run-symbol rose"><Activity size={15}/></span>Hallucination benchmark</span></td>
-                          <td><span className="model-name">GPT-4o mini</span></td>
-                          <td><span className="score"><span className="score-track"><i style={{width:'78%'}}/></span>78.3%</span></td>
-                          <td><span className="badge failed"><i/>Failed</span></td>
-                          <td className="when">Yesterday</td>
-                          <td><button className="more-button" aria-label="More options">···</button></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="table-footer">
-                    <span>Showing 4 of 128 runs</span>
-                    <div className="pagination">
-                      <button disabled>←</button>
-                      <button>→</button>
-                    </div>
-                  </div>
-                </article>
-
-                <aside className="right-column">
-                  <article className="panel activity-panel">
-                    <div className="panel-heading compact">
-                      <div>
-                        <h2>Security overview</h2>
-                        <p>Last 7 days</p>
-                      </div>
-                      <button className="more-button" aria-label="More options">···</button>
-                    </div>
-                    <div className="security-score">
-                      <div className="donut">
-                        <div><strong>92</strong><span>/ 100</span></div>
-                      </div>
-                      <div className="security-copy">
-                        <strong>Looking good</strong>
-                        <span>Security posture</span>
-                        <small><i/> +4.2% this month</small>
-                      </div>
-                    </div>
-                    <div className="security-divider"/>
-                    <div className="finding-row">
-                      <span className="finding-icon high"><ShieldCheck size={15}/></span>
-                      <span><strong>Prompt injection</strong><small>2 findings</small></span>
-                      <b className="finding-count">2</b>
-                    </div>
-                    <div className="finding-row">
-                      <span className="finding-icon medium"><Activity size={15}/></span>
-                      <span><strong>Data leakage</strong><small>1 finding</small></span>
-                      <b className="finding-count">1</b>
-                    </div>
-                    <button className="outline-button" onClick={() => setNavTab('datasets')}>
-                      Manage Evaluation Datasets <ArrowUpRight size={14}/>
-                    </button>
-                  </article>
-
-                  <article className="tip-card">
-                    <div className="tip-spark"><Sparkles size={17}/></div>
-                    <span className="tip-label">GOLDEN DATASET</span>
-                    <h3>BharatHome Customer Support</h3>
-                    <p>40 realistic multi-category evaluation test cases ready for assistant testing.</p>
-                    <a
-                      href="#datasets"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setNavTab('datasets');
-                      }}
-                    >
-                      Open dataset manager <ArrowUpRight size={13}/>
-                    </a>
-                    <div className="tip-decoration"/>
-                  </article>
-                </aside>
-              </section>
-            </>
           )}
 
+          {navTab === 'runs' && (
+            <EvaluationRunsView
+              initialRunId={selectedRunId}
+              onRequestNewRunModal={openExecuteRunModal}
+              onModalClosed={() => setOpenExecuteRunModal(false)}
+              onNavigateToCompare={(_runId) => {
+                setNavTab('compare');
+              }}
+              onNavigateToQualityGate={(_runId) => {
+                setNavTab('quality_gate');
+              }}
+            />
+          )}
+
+          {navTab === 'security' && (
+            <SecurityDashboard
+              onNavigateToRun={(runId) => {
+                setSelectedRunId(runId);
+                setNavTab('runs');
+              }}
+            />
+          )}
+
+          {navTab === 'compare' && <VersionComparison />}
+
+          {navTab === 'quality_gate' && <ReleaseQualityGate />}
+
+          {navTab === 'settings' && <SettingsView />}
+
           <footer className="page-footer">
-            <span>© 2024 Aegis</span>
+            <span>© 2026 Aegis AI Quality Platform</span>
             <span>
-              <i className={`footer-dot ${health}`}/>
+              <i className={`footer-dot ${health}`} />
               {health === 'healthy'
                 ? 'All systems operational'
                 : health === 'checking'
-                ? 'Checking API status'
-                : 'API unavailable'}
+                ? 'Checking API telemetry'
+                : 'API offline'}
             </span>
-            <a href="#">Documentation <ArrowUpRight size={12}/></a>
           </footer>
         </div>
       </main>

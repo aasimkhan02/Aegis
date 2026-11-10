@@ -9,6 +9,16 @@ from app.schemas.adapter import (
     TokenUsage,
     ToolCall,
 )
+from app.schemas.comparison import (
+    ComparisonRequest,
+    ComparisonResponse,
+)
+from app.schemas.quality_gate import (
+    QualityGateRequest,
+    QualityGateResponse,
+    QualityGateThresholds,
+    RuleEvaluationDetail,
+)
 from app.schemas.dataset import (
     DatasetBase,
     DatasetCreate,

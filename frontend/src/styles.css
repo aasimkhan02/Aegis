@@ -153,3 +153,44 @@
 .import-errors-list{margin-top:8px;border-top:1px solid #e7e9ee;padding-top:6px;font-size:10px;color:#dc2626}
 .import-errors-list ul{margin:4px 0 0;padding-left:16px}
 
+/* ==========================================================================
+   Dashboard, Project, Assistant, Run & Security Styles (Step 14)
+   ========================================================================== */
+.badge.completed{background:#eaf7f0;color:#28835d}
+.badge.running{background:#edf5fc;color:#2563eb}
+.badge.pending{background:#fff8eb;color:#b45309}
+.badge.error{background:#fff1f2;color:#e11d48}
+.badge.neutral{background:#f3f4f6;color:#4b5563}
+
+.quick-actions-bar{display:flex;gap:10px;align-items:center}
+.btn-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;border:1px solid #dcdde5;background:#fff;color:#555966;cursor:pointer}
+.btn-icon:hover{background:#f8f9fb;color:#222530}
+
+.grid-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid-3col{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.grid-5col{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+
+.security-cat-card{background:#fff;border:1px solid #eceef2;border-radius:9px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.security-cat-card .cat-title{font-size:10px;font-weight:600;color:#7e838f;text-transform:uppercase;letter-spacing:.5px}
+.security-cat-card .cat-count{font:700 22px Manrope,sans-serif;letter-spacing:-.5px}
+.security-cat-card .cat-status{font-size:9px;font-weight:600}
+.cat-clean{color:#28835d}
+.cat-alert{color:#dc2626}
+
+.drawer-backdrop{position:fixed;inset:0;background:rgba(21,24,35,.4);backdrop-filter:blur(2px);display:flex;justify-content:flex-end;z-index:999;animation:fadeIn .15s}
+.drawer-content{background:#fff;width:100%;max-width:720px;height:100vh;box-shadow:-8px 0 24px rgba(0,0,0,.1);display:flex;flex-direction:column;overflow:hidden}
+.drawer-header{padding:20px 24px;border-bottom:1px solid #eceef2;display:flex;justify-content:space-between;align-items:center}
+.drawer-body{padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+
+.metric-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;font-size:9px;font-weight:600}
+.metric-pill.pass{background:#eaf7f1;color:#1e7850;border:1px solid #bcf0d5}
+.metric-pill.fail{background:#fff1f2;color:#be123c;border:1px solid #fecdd3}
+
+.code-box{background:#1e222d;color:#e2e8f0;border-radius:7px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10px;line-height:1.5;overflow-x:auto}
+.code-box-light{background:#f8f9fa;color:#1f2937;border:1px solid #e5e7eb;border-radius:6px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10px;line-height:1.45;overflow-x:auto;white-space:pre-wrap}
+
+.setting-card{background:#fff;border:1px solid #eceef2;border-radius:9px;padding:20px;margin-bottom:16px}
+.setting-title{font:700 14px Manrope,sans-serif;color:#222530;margin:0 0 4px}
+.setting-desc{font-size:11px;color:#747986;margin:0 0 16px;line-height:1.5}
+
+

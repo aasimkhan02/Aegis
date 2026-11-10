@@ -9,12 +9,19 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.db.session import get_db
-from app.evaluation.exceptions import EvaluationConfigError, IncompatibleProjectError
+from app.evaluation.comparison import compare_evaluation_runs
+from app.evaluation.exceptions import (
+    ComparisonError,
+    EvaluationConfigError,
+    IncompatibleProjectError,
+)
 from app.evaluation.orchestrator import create_evaluation_run, execute_evaluation_run
 from app.evaluation.promptfoo import execute_promptfoo_evaluation
+from app.evaluation.quality_gate import evaluate_release_quality_gate
 from app.models.assistant_version import AssistantVersion
 from app.models.case_result import CaseResult
 from app.models.evaluation_run import EvaluationRun
+from app.schemas.comparison import ComparisonRequest, ComparisonResponse
 from app.schemas.evaluation import (
     CaseResultListResponse,
     CaseResultResponse,
@@ -26,6 +33,7 @@ from app.schemas.promptfoo import (
     PromptfooEvaluationRequest,
     PromptfooEvaluationResponse,
 )
+from app.schemas.quality_gate import QualityGateRequest, QualityGateResponse
 
 logger = logging.getLogger("aegis.api.evaluations")
 router = APIRouter()
@@ -113,6 +121,65 @@ async def evaluate_with_promptfoo(
     return response
 
 
+@router.post(
+    "/compare",
+    response_model=ComparisonResponse,
+    status_code=http_status.HTTP_200_OK,
+    summary="Compare two completed evaluation runs",
+)
+def compare_evaluations(
+    payload: ComparisonRequest,
+    db: Session = Depends(get_db),
+) -> ComparisonResponse:
+    """Compare performance, metrics, regressions, and latency between two completed runs."""
+    try:
+        return compare_evaluation_runs(
+            db=db,
+            baseline_run_id=payload.baseline_run_id,
+            candidate_run_id=payload.candidate_run_id,
+        )
+    except (ComparisonError, IncompatibleProjectError) as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except EvaluationConfigError as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+
+@router.post(
+    "/release-gate",
+    response_model=QualityGateResponse,
+    status_code=http_status.HTTP_200_OK,
+    summary="Evaluate candidate assistant version release quality gate",
+)
+def evaluate_quality_gate(
+    payload: QualityGateRequest,
+    db: Session = Depends(get_db),
+) -> QualityGateResponse:
+    """Evaluate candidate assistant version against release quality criteria and return PASS/FAIL."""
+    try:
+        return evaluate_release_quality_gate(
+            db=db,
+            baseline_run_id=payload.baseline_run_id,
+            candidate_run_id=payload.candidate_run_id,
+            thresholds=payload.thresholds,
+        )
+    except (ComparisonError, IncompatibleProjectError) as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except EvaluationConfigError as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+
 @router.get(
     "",
     response_model=EvaluationRunListResponse,
@@ -141,11 +208,43 @@ def list_evaluations(
 
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
     items = db.scalars(
-        query.order_by(EvaluationRun.created_at.desc()).limit(limit).offset(offset)
-    ).all()
+        query.options(
+            joinedload(EvaluationRun.project),
+            joinedload(EvaluationRun.assistant_version),
+            joinedload(EvaluationRun.dataset),
+        )
+        .order_by(EvaluationRun.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    ).unique().all()
+
+    response_items = []
+    for run in items:
+        pr = round((run.passed_cases / run.total_cases * 100.0), 1) if run.total_cases > 0 else 0.0
+        response_items.append(
+            EvaluationRunResponse(
+                id=run.id,
+                project_id=run.project_id,
+                assistant_version_id=run.assistant_version_id,
+                dataset_id=run.dataset_id,
+                status=run.status,
+                total_cases=run.total_cases,
+                passed_cases=run.passed_cases,
+                failed_cases=run.failed_cases,
+                config=run.config,
+                project_name=run.project.name if run.project else None,
+                assistant_name=run.assistant_version.name if run.assistant_version else None,
+                assistant_version_tag=run.assistant_version.version if run.assistant_version else None,
+                dataset_name=run.dataset.name if run.dataset else None,
+                pass_rate=pr,
+                started_at=run.started_at,
+                completed_at=run.completed_at,
+                created_at=run.created_at,
+            )
+        )
 
     return EvaluationRunListResponse(
-        items=list(items),
+        items=response_items,
         total=total,
     )
 
@@ -158,17 +257,42 @@ def list_evaluations(
 def get_evaluation(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
-) -> EvaluationRun:
+) -> EvaluationRunResponse:
     """Fetch status, case counts, and execution metadata for a specific evaluation run."""
     run = db.scalar(
-        select(EvaluationRun).where(EvaluationRun.id == run_id)
+        select(EvaluationRun)
+        .options(
+            joinedload(EvaluationRun.project),
+            joinedload(EvaluationRun.assistant_version),
+            joinedload(EvaluationRun.dataset),
+        )
+        .where(EvaluationRun.id == run_id)
     )
     if not run:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Evaluation run '{run_id}' not found.",
         )
-    return run
+    pr = round((run.passed_cases / run.total_cases * 100.0), 1) if run.total_cases > 0 else 0.0
+    return EvaluationRunResponse(
+        id=run.id,
+        project_id=run.project_id,
+        assistant_version_id=run.assistant_version_id,
+        dataset_id=run.dataset_id,
+        status=run.status,
+        total_cases=run.total_cases,
+        passed_cases=run.passed_cases,
+        failed_cases=run.failed_cases,
+        config=run.config,
+        project_name=run.project.name if run.project else None,
+        assistant_name=run.assistant_version.name if run.assistant_version else None,
+        assistant_version_tag=run.assistant_version.version if run.assistant_version else None,
+        dataset_name=run.dataset.name if run.dataset else None,
+        pass_rate=pr,
+        started_at=run.started_at,
+        completed_at=run.completed_at,
+        created_at=run.created_at,
+    )
 
 
 @router.get(
