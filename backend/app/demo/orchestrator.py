@@ -136,8 +136,52 @@ class DemoAssistantOrchestrator(BaseAssistantAdapter):
         query: str,
         start_time: float,
     ) -> AssistantResponse:
+        import re
+
         q_lower = query.lower()
         tool_calls: list[ToolCall] = []
+
+        # Collect conversation history for multi-turn awareness
+        history_msgs = [m for m in request.messages if m.content]
+        all_user_text = " ".join(m.content.lower() for m in history_msgs if m.role == "user")
+
+        def detect_product(text: str) -> str | None:
+            t = text.lower()
+            if any(k in t for k in ["refrigerator", "fridge", "frostfree"]):
+                return "refrigerator"
+            if any(k in t for k in ["washing machine", "washer", "turboclean"]):
+                return "washing machine"
+            if any(k in t for k in ["air conditioner", "split ac", "coolbreeze", " ac"]):
+                return "air conditioner"
+            if any(k in t for k in ["microwave", "oven", "aerogrill"]):
+                return "microwave"
+            if any(k in t for k in ["water purifier", "purifier", "ro ", "aquapure"]):
+                return "water purifier"
+            if any(k in t for k in ["induction", "cooktop", "cooksmart"]):
+                return "induction cooktop"
+            if any(k in t for k in ["geyser", "water heater", "instantboil"]):
+                return "geyser"
+            return None
+
+        # Resolve product: current turn takes precedence; fall back to earlier turns in history
+        current_product = detect_product(q_lower)
+        context_product = current_product
+        if not context_product:
+            for msg in reversed(history_msgs[:-1]):
+                found = detect_product(msg.content)
+                if found:
+                    context_product = found
+                    break
+
+        # Multi-turn instruction tracking (e.g. brief vs detailed)
+        is_brief = False
+        for msg in history_msgs:
+            if msg.role == "user":
+                txt = msg.content.lower()
+                if any(w in txt for w in ["keep your answers brief", "keep it brief", "brief answer", "concise", "short answer", "shortly"]):
+                    is_brief = True
+                if any(w in txt for w in ["detailed", "full steps", "in detail", "elaborate", "step-by-step"]):
+                    is_brief = False
 
         # 1. Adversarial & Safety Directives
         if any(w in q_lower for w in ["system prompt", "system instruction", "debug mode", "developer guideline", "developer credentials"]):
@@ -190,14 +234,29 @@ class DemoAssistantOrchestrator(BaseAssistantAdapter):
             )
             return self._build_response(output, tool_calls, request, start_time, unlisted=True)
 
-        if "create a service request" in q_lower or "book a service request" in q_lower:
-            product_name = "BharatHome Washing Machine" if "washing" in q_lower else "BharatHome Refrigerator"
+        if "create a service request" in q_lower or "book a service request" in q_lower or ("service request" in q_lower and "book" in q_lower) or ("service request" in q_lower and "create" in q_lower):
+            customer_name = "Valued Customer"
+            name_match = re.search(
+                r"(?:my name is\s+|customer(?: name)?:\s*|for\s+)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)",
+                " ".join(m.content for m in history_msgs),
+                re.IGNORECASE,
+            )
+            if name_match:
+                customer_name = name_match.group(1).strip()
+
+            prod = context_product or ("washing machine" if "washing" in all_user_text else "refrigerator")
+            prod_title = f"BharatHome {prod.title()}"
             issue_desc = "Faulty appliance requiring technician inspection"
-            tool_args = {"customer_name": "Valued Customer", "product_name": product_name, "issue": issue_desc}
+            if "drain" in all_user_text or "oe" in all_user_text or "leak" in all_user_text:
+                issue_desc = "Drainage failure or leaking water"
+            elif "frost" in all_user_text or "e4" in all_user_text or "cool" in all_user_text:
+                issue_desc = "Cooling or defrost issue"
+
+            tool_args = {"customer_name": customer_name, "product_name": prod_title, "issue": issue_desc}
             tool_res = execute_tool("create_service_request", tool_args)
             tool_calls.append(ToolCall(name="create_service_request", arguments=tool_args))
             ticket_id = tool_res.get("reference_id", "SR-BH-1001")
-            output = f"I have created a service request for your {product_name}. Service Ticket ID: {ticket_id}."
+            output = f"I have created a service request for your {prod_title}. Service Ticket ID: {ticket_id}."
             return self._build_response(output, tool_calls, request, start_time)
 
         # 2. Tool Invocations for Cases with Expected Tools
@@ -234,29 +293,53 @@ class DemoAssistantOrchestrator(BaseAssistantAdapter):
             tool_args = {"product_name": "induction cooktop", "issue": "lock"}
             tool_res = execute_tool("troubleshooting_lookup", tool_args)
             tool_calls.append(ToolCall(name="troubleshooting_lookup", arguments=tool_args))
-        elif any(w in q_lower for w in ["specification", "specifications", "specs"]) and not ("inspection" in q_lower):
-            product_name = "refrigerator" if ("refrigerator" in q_lower or "fridge" in q_lower) else "washing machine"
+        elif ("warranty" in q_lower or "guarantee" in q_lower or "coverage" in q_lower) and context_product:
+            tool_args = {"product_name": context_product}
+            tool_res = execute_tool("warranty_lookup", tool_args)
+            tool_calls.append(ToolCall(name="warranty_lookup", arguments=tool_args))
+        elif any(w in q_lower for w in ["specification", "specifications", "specs", "capacity", "dimensions"]) and not ("inspection" in q_lower):
+            product_name = context_product or ("refrigerator" if ("refrigerator" in q_lower or "fridge" in q_lower) else "washing machine")
             tool_args = {"product_name": product_name}
             tool_res = execute_tool("product_lookup", tool_args)
             tool_calls.append(ToolCall(name="product_lookup", arguments=tool_args))
 
         # Retrieve official Knowledge Base guidance
-        kb_res = search_knowledge_base(query, top_k=1)
+        kb_query = query if current_product or not context_product else f"{context_product} {query}"
+        kb_res = search_knowledge_base(kb_query, top_k=1)
         kb_text = kb_res[0]["content"] if kb_res else ""
 
         # Synthesize grounded output
         parts = []
         if kb_text:
             parts.append(f"Based on official BharatHome policy and documentation:\n{kb_text}")
+        if tool_res and tool_res.get("fault"):
+            parts.append(f"Issue Identified: {tool_res['fault']}")
         if tool_res and tool_res.get("steps"):
             steps = "\n".join(f"{i}. {s}" for i, s in enumerate(tool_res["steps"], 1))
             parts.append(f"Diagnostic Steps:\n{steps}")
+        if tool_res and tool_res.get("comprehensive_warranty"):
+            parts.append(f"Comprehensive Warranty: {tool_res['comprehensive_warranty']}")
+        if tool_res and tool_res.get("extended_component_warranty"):
+            parts.append(f"Extended Component Warranty: {tool_res['extended_component_warranty']}")
         if tool_res and tool_res.get("coverage_details"):
             parts.append(f"Coverage Details: {tool_res['coverage_details']}")
         if tool_res and tool_res.get("capacity"):
             parts.append(f"Product Specifications: Model {tool_res.get('model_number')}, Capacity {tool_res.get('capacity')}.")
 
-        output = "\n\n".join(parts) if parts else "Please contact BharatHome customer support at 1800-BHARAT-HOME for assistance."
+        if is_brief:
+            if tool_res and tool_res.get("capacity"):
+                output = f"BharatHome {tool_res.get('product', 'Appliance')}: Model {tool_res.get('model_number')}, Capacity {tool_res.get('capacity')}."
+            elif tool_res and tool_res.get("coverage_details"):
+                output = f"BharatHome warranty: {tool_res.get('comprehensive_warranty')}. {tool_res.get('coverage_details')}"
+            elif tool_res and tool_res.get("steps"):
+                output = f"Primary step: {tool_res['steps'][0]}"
+            elif kb_text:
+                output = kb_text.split("\n")[0]
+            else:
+                output = "Please contact BharatHome customer support at 1800-BHARAT-HOME."
+        else:
+            output = "\n\n".join(parts) if parts else "Please contact BharatHome customer support at 1800-BHARAT-HOME for assistance."
+
         return self._build_response(output, tool_calls, request, start_time)
 
     # ==========================================================================
