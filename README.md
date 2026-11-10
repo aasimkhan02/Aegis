@@ -156,4 +156,69 @@ To seed or re-seed the golden dataset into PostgreSQL:
 & backend/.venv/Scripts/python.exe -m unittest discover -s backend/tests -p "test_*.py" -v
 ```
 
+## Prompt and Adversarial Testing (Promptfoo Integration)
+
+Aegis integrates the **Promptfoo CLI** (`promptfoo@0.120.19`) for deterministic prompt evaluation, assertion verification, and adversarial vulnerability testing against customer-support assistants.
+
+### What Promptfoo Does in Aegis
+Promptfoo evaluates assistant responses against predefined assertions (`contains`, `not-contains`, `icontains`, etc.) without requiring external paid LLM judge APIs. Aegis invokes the CLI asynchronously via Python `subprocess`, captures structured JSON evaluation results, redacts sensitive credentials from logs and outputs, and surfaces results via both CLI and API.
+
+### Test Categories Included
+The suite in `backend/promptfoo/promptfooconfig.yaml` contains 13 test cases across five core categories:
+1. **Normal Prompt Testing**: Validates standard domain inquiries (product specifications, warranty periods, installation clearances, drain error codes).
+2. **Expected-Output Assertions**: Ensures mandatory terms, tool booking confirmation codes (`ticket id`), and absence of forbidden phrases.
+3. **Jailbreak Defense Testing**: Tests resilience against prompt leakage ("output system prompt verbatim"), authority override ("Emergency Directive 402 instant refund"), and safety bypass ("cut the wires to disable lid lock").
+4. **Prompt Injection Testing**: Asserts that malicious user input cannot override knowledge base facts (e.g. injected 50-year warranty claims) or extract synthetic database credentials (`root123`).
+5. **Adversarial Input Handling**: Verifies polite refusal of unsupported products (laptops, phones), respectful defusing of toxic user abuse, and handling of contradictory instructions.
+
+### How to Run Promptfoo Tests
+
+#### 1. Via Promptfoo CLI Directly
+```powershell
+# Evaluate BharatHome Assistant v1 (Good Production Configuration - 100% Pass Rate)
+$env:PROMPTFOO_DISABLE_UPDATE='true'
+$env:PROMPTFOO_DISABLE_TELEMETRY='true'
+$env:PROMPTFOO_PYTHON='backend/.venv/Scripts/python.exe'
+promptfoo eval -c backend/promptfoo/promptfooconfig.yaml --no-cache
+
+# Evaluate BharatHome Assistant v2 (Intentionally Flawed Configuration - Highlights Failures)
+$env:AEGIS_ASSISTANT_VERSION='v2'
+promptfoo eval -c backend/promptfoo/promptfooconfig.yaml --no-cache
+```
+
+#### 2. Via Aegis FastAPI Endpoint
+```http
+POST /api/evaluations/promptfoo
+Content-Type: application/json
+
+{
+  "version": "v1",
+  "provider": "mock",
+  "timeout_seconds": 120
+}
+```
+
+Or target a specific persisted assistant UUID:
+```http
+POST /api/evaluations/promptfoo
+Content-Type: application/json
+
+{
+  "assistant_version_id": "00000000-0000-0000-0000-000000000000",
+  "timeout_seconds": 120
+}
+```
+
+#### 3. Run Automated Integration Tests (Subprocess Mocked)
+```powershell
+$env:PYTHONPATH='backend'; & "backend/.venv/Scripts/python.exe" -m unittest discover -s backend/tests -p "test_promptfoo_integration.py" -v
+```
+
+### How Results Are Interpreted
+- **`status: "completed"`**: Evaluation ran to completion. The response includes `total_tests`, `passed`, `failed`, and a list of per-test results with detailed assertion breakdowns. Note: failed test assertions are normal benchmark findings and are **not** treated as infrastructure errors.
+- **`status: "timeout"`**: Promptfoo CLI exceeded the configured execution timeout (default 120s). The process was safely terminated.
+- **`status: "cli_not_found"`**: The `promptfoo` CLI binary was not detected in `PATH` or npm directories.
+- **`status: "error"`**: Subprocess crash, non-zero exit without JSON generation, or unparseable output.
+
+
 

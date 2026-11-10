@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
 from app.evaluation.exceptions import EvaluationConfigError, IncompatibleProjectError
 from app.evaluation.orchestrator import create_evaluation_run, execute_evaluation_run
+from app.evaluation.promptfoo import execute_promptfoo_evaluation
+from app.models.assistant_version import AssistantVersion
 from app.models.case_result import CaseResult
 from app.models.evaluation_run import EvaluationRun
 from app.schemas.evaluation import (
@@ -19,6 +21,10 @@ from app.schemas.evaluation import (
     EvaluationCreateRequest,
     EvaluationRunListResponse,
     EvaluationRunResponse,
+)
+from app.schemas.promptfoo import (
+    PromptfooEvaluationRequest,
+    PromptfooEvaluationResponse,
 )
 
 logger = logging.getLogger("aegis.api.evaluations")
@@ -69,6 +75,42 @@ def start_evaluation(
     )
 
     return eval_run
+
+
+@router.post(
+    "/promptfoo",
+    response_model=PromptfooEvaluationResponse,
+    status_code=http_status.HTTP_200_OK,
+    summary="Execute Promptfoo prompt and adversarial test suite",
+)
+async def evaluate_with_promptfoo(
+    payload: PromptfooEvaluationRequest,
+    db: Session = Depends(get_db),
+) -> PromptfooEvaluationResponse:
+    """Execute the Promptfoo CLI suite against a target assistant version."""
+    assistant_name = None
+    assistant_version_str = payload.version
+
+    if payload.assistant_version_id is not None:
+        av = db.get(AssistantVersion, payload.assistant_version_id)
+        if av is None:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail=f"AssistantVersion '{payload.assistant_version_id}' not found.",
+            )
+        assistant_name = av.name
+        assistant_version_str = av.version
+
+    response = await execute_promptfoo_evaluation(
+        assistant_version_id=payload.assistant_version_id,
+        version=payload.version,
+        provider=payload.provider,
+        timeout_seconds=payload.timeout_seconds,
+        assistant_name=assistant_name,
+        assistant_version=assistant_version_str,
+    )
+
+    return response
 
 
 @router.get(
@@ -192,3 +234,5 @@ def get_case_result(
             detail=f"Case result '{result_id}' for evaluation run '{run_id}' not found.",
         )
     return result
+
+
