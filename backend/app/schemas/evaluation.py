@@ -17,6 +17,8 @@ class EvaluationConfigPayload(BaseModel):
     enable_deepeval: bool = Field(default=False, description="Enable DeepEval LLM-as-a-judge metrics")
     enable_ragas: bool = Field(default=False, description="Enable Ragas RAG evaluation metrics")
     ragas_metrics: list[str] | None = Field(default=None, description="Optional explicit subset of Ragas metric names")
+    enable_security: bool = Field(default=False, description="Enable lightweight deterministic security validators")
+    security_validators: list[str] | None = Field(default=None, description="Optional explicit subset of security validator names")
     evaluators: list[str] | None = Field(default=None, description="Optional explicit list of evaluator names")
     extra: dict[str, Any] = Field(default_factory=dict)
 

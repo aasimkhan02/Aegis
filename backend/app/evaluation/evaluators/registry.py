@@ -19,6 +19,14 @@ from app.evaluation.ragas.evaluators import (
     RagasContextRecallEvaluator,
     RagasFaithfulnessEvaluator,
 )
+from app.evaluation.security import (
+    CanaryLeakageValidator,
+    ForbiddenContentValidator,
+    PIIDetectionValidator,
+    SecurityPolicyValidator,
+    StructuredResponseValidator,
+    get_security_evaluators,
+)
 
 _EVALUATOR_REGISTRY: dict[str, Type[BaseEvaluator]] = {
     "response_presence": ResponsePresenceEvaluator,
@@ -31,6 +39,11 @@ _EVALUATOR_REGISTRY: dict[str, Type[BaseEvaluator]] = {
     "ragas_faithfulness": RagasFaithfulnessEvaluator,
     "ragas_context_precision": RagasContextPrecisionEvaluator,
     "ragas_context_recall": RagasContextRecallEvaluator,
+    "security_pii": PIIDetectionValidator,
+    "security_canary": CanaryLeakageValidator,
+    "security_forbidden_content": ForbiddenContentValidator,
+    "security_structured_response": StructuredResponseValidator,
+    "security_policy": SecurityPolicyValidator,
 }
 
 
@@ -77,6 +90,9 @@ def resolve_evaluators(config: dict[str, Any] | None = None) -> list[BaseEvaluat
     if cfg.get("enable_ragas") is True:
         ragas_names = cfg.get("ragas_metrics")
         evaluators.extend(get_ragas_evaluators(metric_names=ragas_names))
+    if cfg.get("enable_security") is True or cfg.get("enable_security_validators") is True:
+        sec_names = cfg.get("security_validators")
+        evaluators.extend(get_security_evaluators(validators=sec_names))
 
     return evaluators
 

@@ -17,6 +17,15 @@ from app.evaluation.ragas import (
     get_ragas_evaluators,
 )
 
+from app.evaluation.security import (
+    CanaryLeakageValidator,
+    ForbiddenContentValidator,
+    PIIDetectionValidator,
+    SecurityPolicyValidator,
+    StructuredResponseValidator,
+    get_security_evaluators,
+)
+
 __all__ = [
     "BaseEvaluator",
     "EvaluatorResult",
@@ -31,5 +40,11 @@ __all__ = [
     "RagasContextPrecisionEvaluator",
     "RagasContextRecallEvaluator",
     "get_ragas_evaluators",
+    "PIIDetectionValidator",
+    "CanaryLeakageValidator",
+    "ForbiddenContentValidator",
+    "StructuredResponseValidator",
+    "SecurityPolicyValidator",
+    "get_security_evaluators",
 ]
 
