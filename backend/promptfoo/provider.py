@@ -17,10 +17,7 @@ if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
 from app.adapters.base import BaseAssistantAdapter
-from app.db.session import SessionLocal
 from app.demo.orchestrator import DemoAssistantOrchestrator
-from app.evaluation.executor import resolve_assistant_adapter
-from app.models.assistant_version import AssistantVersion
 from app.schemas.adapter import ConversationRequest, Message
 
 
@@ -38,6 +35,10 @@ def _resolve_adapter(options: dict[str, Any] | None, context: dict[str, Any] | N
     if raw_version_id:
         try:
             target_uuid = uuid.UUID(str(raw_version_id).strip())
+            from app.db.session import SessionLocal
+            from app.evaluation.executor import resolve_assistant_adapter
+            from app.models.assistant_version import AssistantVersion
+
             db = SessionLocal()
             try:
                 av = db.get(AssistantVersion, target_uuid)
