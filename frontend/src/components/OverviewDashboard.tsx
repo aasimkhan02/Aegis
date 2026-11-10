@@ -117,11 +117,11 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             </span>
           </div>
           <div className="stat-value">
-            {stats ? stats.total_evaluations.toLocaleString() : '...'}
+            {stats ? stats.total_evaluation_runs.toLocaleString() : '...'}
           </div>
           <div className="stat-foot">
             <span className="trend">
-              {stats ? `${stats.completed_evaluations} completed` : ''}
+              {stats ? `${stats.total_cases_evaluated} cases` : ''}
             </span>
             <span>in database</span>
           </div>
@@ -138,7 +138,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             </span>
           </div>
           <div className="stat-value">
-            {stats ? stats.avg_pass_rate : '0'}
+            {stats ? stats.overall_pass_rate : '0'}
             <span className="value-unit">%</span>
           </div>
           <div className="stat-foot">
@@ -153,7 +153,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           <div className="stat-top">
             <span className="stat-label">Security violations</span>
             <span className="stat-icon orange">
-              {stats && stats.security_issues_count > 0 ? (
+              {stats && stats.total_security_failures > 0 ? (
                 <ShieldAlert size={17} />
               ) : (
                 <ShieldCheck size={17} />
@@ -161,10 +161,10 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             </span>
           </div>
           <div className="stat-value">
-            {stats ? stats.security_issues_count : 0}
+            {stats ? stats.total_security_failures : 0}
           </div>
           <div className="stat-foot">
-            {stats && stats.security_issues_count > 0 ? (
+            {stats && stats.total_security_failures > 0 ? (
               <span className="issue-pill" style={{ background: '#fff1f2', color: '#be123c' }}>
                 Flagged issues
               </span>
@@ -301,7 +301,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
           <div className="table-footer">
             <span>
-              Showing {recentRuns.length} of {stats?.total_evaluations ?? recentRuns.length} runs
+              Showing {recentRuns.length} of {stats?.total_evaluation_runs ?? recentRuns.length} runs
             </span>
             <button className="text-button" onClick={() => onNavigate('runs')}>
               Browse evaluation history <ArrowUpRight size={12} />
@@ -331,15 +331,15 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 className="donut"
                 style={{
                   background:
-                    securitySummary && securitySummary.total_violations > 0
+                    securitySummary && securitySummary.total_security_failures > 0
                       ? 'conic-gradient(#ef4444 0 25%, #fecaca 25% 100%)'
                       : 'conic-gradient(#22c55e 0 100%, #bbf7d0 100%)',
                 }}
               >
                 <div>
                   <strong>
-                    {securitySummary && securitySummary.total_violations > 0
-                      ? securitySummary.total_violations
+                    {securitySummary && securitySummary.total_security_failures > 0
+                      ? securitySummary.total_security_failures
                       : 0}
                   </strong>
                   <span>violations</span>
@@ -347,14 +347,14 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               </div>
               <div className="security-copy">
                 <strong>
-                  {securitySummary && securitySummary.total_violations === 0
+                  {securitySummary && securitySummary.total_security_failures === 0
                     ? 'All Checks Passing'
                     : 'Security Flags Found'}
                 </strong>
                 <span>Safety & compliance</span>
                 <small>
                   <i />
-                  {securitySummary?.total_security_evaluations ?? 0} total security evaluations
+                  {securitySummary?.total_security_cases ?? 0} total security evaluations
                 </small>
               </div>
             </div>
@@ -370,7 +370,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 <small>Indian phones, emails, Aadhaar</small>
               </span>
               <b className="finding-count">
-                {securitySummary?.category_breakdown.pii ?? 0}
+                {securitySummary?.validator_breakdown?.['pii_detection']?.failed ?? 0}
               </b>
             </div>
 
@@ -383,7 +383,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 <small>System prompt token secrecy</small>
               </span>
               <b className="finding-count">
-                {securitySummary?.category_breakdown.canary ?? 0}
+                {securitySummary?.validator_breakdown?.['security_canary']?.failed ?? 0}
               </b>
             </div>
 
@@ -396,8 +396,8 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 <small>Injection, shell escapes, secrets</small>
               </span>
               <b className="finding-count">
-                {(securitySummary?.category_breakdown.forbidden_content ?? 0) +
-                  (securitySummary?.category_breakdown.technical_safety ?? 0)}
+                {(securitySummary?.validator_breakdown?.['forbidden_content']?.failed ?? 0) +
+                  (securitySummary?.validator_breakdown?.['technical_safety']?.failed ?? 0)}
               </b>
             </div>
 
@@ -417,7 +417,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             <span className="tip-label">GOLDEN DATASETS</span>
             <h3>Manage Test Suites</h3>
             <p>
-              {stats?.total_datasets ?? 0} datasets configured with {stats?.total_test_cases ?? 0} test cases ready for automated evaluation.
+              {stats?.total_datasets ?? 0} datasets configured with {stats?.total_cases_evaluated ?? 0} cases evaluated ready for automated evaluation.
             </p>
             <a
               href="#datasets"

@@ -102,37 +102,35 @@ export interface DashboardStats {
   total_projects: number;
   total_assistants: number;
   total_datasets: number;
-  total_test_cases: number;
-  total_evaluations: number;
-  completed_evaluations: number;
-  avg_pass_rate: number;
-  security_issues_count: number;
+  total_evaluation_runs: number;
+  total_cases_evaluated: number;
+  overall_passed_cases: number;
+  overall_failed_cases: number;
+  overall_pass_rate: number;
+  total_security_failures: number;
+  average_latency_ms: number | null;
 }
 
 export interface SecurityFinding {
+  case_result_id: string;
   run_id: string;
-  created_at: string;
-  assistant_name: string;
-  assistant_version: string;
-  dataset_name: string;
   test_case_id: string;
-  metric_name: string;
+  test_case_name: string;
+  assistant_name: string | null;
+  assistant_version: string | null;
+  validator_name: string;
+  status: string;
   score: number;
-  reason: string;
-  details: Record<string, any>;
+  error_message: string | null;
+  latency_ms: number | null;
+  evaluated_at: string;
 }
 
 export interface SecuritySummary {
-  total_security_evaluations: number;
-  total_violations: number;
-  clean_runs: number;
-  category_breakdown: {
-    pii: number;
-    canary: number;
-    forbidden_content: number;
-    technical_safety: number;
-    policy_compliance: number;
-  };
-  recent_findings: SecurityFinding[];
+  total_security_cases: number;
+  total_security_failures: number;
+  security_pass_rate: number;
+  validator_breakdown: Record<string, { passed: number; failed: number }>;
+  findings: SecurityFinding[];
 }
 

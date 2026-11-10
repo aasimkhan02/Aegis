@@ -27,3 +27,12 @@ postgres_data/
 .DS_Store
 .vscode/
 .idea/
+.deepeval/
+**/.deepeval/
+.codex/
+**/.codex/
+.promptfoo/
+**/.promptfoo/
+output.json
+**/output.json
+*.log

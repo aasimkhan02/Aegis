@@ -41,19 +41,19 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = ({
     void loadData();
   }, []);
 
-  const findings = summary?.recent_findings || [];
+  const findings = summary?.findings || [];
   const filteredFindings = findings.filter((f) => {
     const q = search.toLowerCase();
     const matchesSearch =
-      f.metric_name.toLowerCase().includes(q) ||
-      f.reason.toLowerCase().includes(q) ||
-      f.assistant_name.toLowerCase().includes(q) ||
-      f.dataset_name.toLowerCase().includes(q) ||
+      f.validator_name.toLowerCase().includes(q) ||
+      (f.error_message && f.error_message.toLowerCase().includes(q)) ||
+      (f.assistant_name && f.assistant_name.toLowerCase().includes(q)) ||
+      (f.test_case_name && f.test_case_name.toLowerCase().includes(q)) ||
       f.run_id.toLowerCase().includes(q);
 
     if (!matchesSearch) return false;
     if (!categoryFilter) return true;
-    return f.metric_name.toLowerCase().includes(categoryFilter.toLowerCase());
+    return f.validator_name.toLowerCase().includes(categoryFilter.toLowerCase());
   });
 
   return (
@@ -69,7 +69,7 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = ({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h2>Security & Safety Intelligence</h2>
-            {summary && summary.total_violations === 0 ? (
+            {summary && summary.total_security_failures === 0 ? (
               <span className="badge passed">
                 <i /> ALL CHECKS PASSING
               </span>
@@ -101,7 +101,7 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = ({
             </span>
           </div>
           <div className="stat-value">
-            {summary ? summary.total_security_evaluations : 0}
+            {summary ? summary.total_security_cases : 0}
           </div>
           <div className="stat-foot">
             <span className="trend">Validated checks</span>
@@ -115,28 +115,28 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = ({
               <ShieldAlert size={16} />
             </span>
           </div>
-          <div className="stat-value" style={{ color: summary && summary.total_violations > 0 ? '#dc2626' : '#22c55e' }}>
-            {summary ? summary.total_violations : 0}
+          <div className="stat-value" style={{ color: summary && summary.total_security_failures > 0 ? '#dc2626' : '#22c55e' }}>
+            {summary ? summary.total_security_failures : 0}
           </div>
           <div className="stat-foot">
-            <span style={{ color: summary && summary.total_violations > 0 ? '#dc2626' : '#22c55e', fontWeight: 600 }}>
-              {summary && summary.total_violations === 0 ? 'Zero breaches' : 'Action recommended'}
+            <span style={{ color: summary && summary.total_security_failures > 0 ? '#dc2626' : '#22c55e', fontWeight: 600 }}>
+              {summary && summary.total_security_failures === 0 ? 'Zero breaches' : 'Action recommended'}
             </span>
           </div>
         </article>
 
         <article className="stat-card">
           <div className="stat-top">
-            <span className="stat-label">Clean Test Runs</span>
+            <span className="stat-label">Pass Rate</span>
             <span className="stat-icon green">
               <CheckCircle2 size={16} />
             </span>
           </div>
           <div className="stat-value">
-            {summary ? summary.clean_runs : 0}
+            {summary ? summary.security_pass_rate : 100}%
           </div>
           <div className="stat-foot">
-            <span className="trend">100% security pass rate</span>
+            <span className="trend">Across security validators</span>
           </div>
         </article>
 
@@ -148,7 +148,7 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = ({
             </span>
           </div>
           <div className="stat-value" style={{ fontSize: '18px', paddingTop: '6px' }}>
-            {summary && summary.total_violations === 0 ? 'Hardened' : 'Review Needed'}
+            {summary && summary.total_security_failures === 0 ? 'Hardened' : 'Review Needed'}
           </div>
           <div className="stat-foot">
             <span>Deterministic engine active</span>
@@ -164,51 +164,51 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = ({
         <div className="grid-5col">
           <div className="security-cat-card">
             <span className="cat-title">PII Protection</span>
-            <div className="cat-count" style={{ color: (summary?.category_breakdown.pii ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {summary?.category_breakdown.pii ?? 0}
+            <div className="cat-count" style={{ color: (summary?.validator_breakdown?.['pii_detection']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {summary?.validator_breakdown?.['pii_detection']?.failed ?? 0}
             </div>
-            <span className="cat-status" style={{ color: (summary?.category_breakdown.pii ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {(summary?.category_breakdown.pii ?? 0) === 0 ? 'Clean' : 'Violations'}
+            <span className="cat-status" style={{ color: (summary?.validator_breakdown?.['pii_detection']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {(summary?.validator_breakdown?.['pii_detection']?.failed ?? 0) === 0 ? 'Clean' : 'Violations'}
             </span>
           </div>
 
           <div className="security-cat-card">
             <span className="cat-title">Canary Leakage</span>
-            <div className="cat-count" style={{ color: (summary?.category_breakdown.canary ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {summary?.category_breakdown.canary ?? 0}
+            <div className="cat-count" style={{ color: (summary?.validator_breakdown?.['security_canary']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {summary?.validator_breakdown?.['security_canary']?.failed ?? 0}
             </div>
-            <span className="cat-status" style={{ color: (summary?.category_breakdown.canary ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {(summary?.category_breakdown.canary ?? 0) === 0 ? 'Secrecy Maintained' : 'Prompt Leaked'}
+            <span className="cat-status" style={{ color: (summary?.validator_breakdown?.['security_canary']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {(summary?.validator_breakdown?.['security_canary']?.failed ?? 0) === 0 ? 'Secrecy Maintained' : 'Prompt Leaked'}
             </span>
           </div>
 
           <div className="security-cat-card">
             <span className="cat-title">Forbidden Words</span>
-            <div className="cat-count" style={{ color: (summary?.category_breakdown.forbidden_content ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {summary?.category_breakdown.forbidden_content ?? 0}
+            <div className="cat-count" style={{ color: (summary?.validator_breakdown?.['forbidden_content']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {summary?.validator_breakdown?.['forbidden_content']?.failed ?? 0}
             </div>
-            <span className="cat-status" style={{ color: (summary?.category_breakdown.forbidden_content ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {(summary?.category_breakdown.forbidden_content ?? 0) === 0 ? 'Compliant' : 'Flagged'}
+            <span className="cat-status" style={{ color: (summary?.validator_breakdown?.['forbidden_content']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {(summary?.validator_breakdown?.['forbidden_content']?.failed ?? 0) === 0 ? 'Compliant' : 'Flagged'}
             </span>
           </div>
 
           <div className="security-cat-card">
             <span className="cat-title">Technical Safety</span>
-            <div className="cat-count" style={{ color: (summary?.category_breakdown.technical_safety ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {summary?.category_breakdown.technical_safety ?? 0}
+            <div className="cat-count" style={{ color: (summary?.validator_breakdown?.['technical_safety']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {summary?.validator_breakdown?.['technical_safety']?.failed ?? 0}
             </div>
-            <span className="cat-status" style={{ color: (summary?.category_breakdown.technical_safety ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {(summary?.category_breakdown.technical_safety ?? 0) === 0 ? 'Safe' : 'Escapes Detected'}
+            <span className="cat-status" style={{ color: (summary?.validator_breakdown?.['technical_safety']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {(summary?.validator_breakdown?.['technical_safety']?.failed ?? 0) === 0 ? 'Safe' : 'Escapes Detected'}
             </span>
           </div>
 
           <div className="security-cat-card">
             <span className="cat-title">Policy Adherence</span>
-            <div className="cat-count" style={{ color: (summary?.category_breakdown.policy_compliance ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {summary?.category_breakdown.policy_compliance ?? 0}
+            <div className="cat-count" style={{ color: (summary?.validator_breakdown?.['policy_compliance']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {summary?.validator_breakdown?.['policy_compliance']?.failed ?? 0}
             </div>
-            <span className="cat-status" style={{ color: (summary?.category_breakdown.policy_compliance ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
-              {(summary?.category_breakdown.policy_compliance ?? 0) === 0 ? 'Adherent' : 'Violations'}
+            <span className="cat-status" style={{ color: (summary?.validator_breakdown?.['policy_compliance']?.failed ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
+              {(summary?.validator_breakdown?.['policy_compliance']?.failed ?? 0) === 0 ? 'Adherent' : 'Violations'}
             </span>
           </div>
         </div>
@@ -285,29 +285,29 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = ({
                 {filteredFindings.map((f, i) => (
                   <tr key={`${f.run_id}-${i}`}>
                     <td>
-                      <span className="badge failed" style={{ fontSize: '9px' }}>
+                      <span className={`badge ${f.status === 'passed' ? 'passed' : 'failed'}`} style={{ fontSize: '9px' }}>
                         <i />
-                        {f.metric_name}
+                        {f.validator_name}
                       </span>
                     </td>
                     <td>
-                      <strong>{f.assistant_name}</strong> (v{f.assistant_version})
+                      <strong>{f.assistant_name || 'Assistant'}</strong> (v{f.assistant_version || '1.0'})
                       <span style={{ display: 'block', fontSize: '9px', color: '#6b7280' }}>
-                        {f.dataset_name}
+                        {f.test_case_name}
                       </span>
                     </td>
                     <td style={{ maxWidth: '380px' }}>
-                      <span style={{ color: '#b91c1c', fontSize: '11px', fontWeight: 500 }}>
-                        {f.reason}
+                      <span style={{ color: f.status === 'passed' ? '#16a34a' : '#b91c1c', fontSize: '11px', fontWeight: 500 }}>
+                        {f.error_message || (f.status === 'passed' ? 'Security assertion satisfied' : 'Violation detected')}
                       </span>
                     </td>
                     <td>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#dc2626' }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: f.score < 1.0 ? '#dc2626' : '#16a34a' }}>
                         {f.score}
                       </span>
                     </td>
                     <td style={{ fontSize: '10px', color: '#6b7280' }}>
-                      {new Date(f.created_at).toLocaleString([], {
+                      {new Date(f.evaluated_at).toLocaleString([], {
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
