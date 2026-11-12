@@ -1,226 +1,343 @@
-# Aegis — AI Assistant Quality, Regression & Security Evaluation Platform
+# 🛡️ Aegis
 
-Aegis is an automated evaluation platform designed to benchmark, protect, and quality-gate conversational AI assistants before production release.
+<div align="center">
 
-Evaluating LLMs requires more than checking whether a response "looks good." Modern AI assistants generate probabilistic responses, maintain multi-turn dialogue context, invoke external tools, and face prompt injections, data leakage, and unintended behavioral regressions across prompt or model updates. Aegis provides an end-to-end framework combining **deterministic zero-cost checks**, **security validators**, **prompt & adversarial assertions**, **assistant version comparisons**, and **automated release quality gates** with a real-time web dashboard.
+### AI Assistant Quality, Regression & Security Evaluation Platform
+
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Promptfoo](https://img.shields.io/badge/Promptfoo-Adversarial%20CI-FF6B6B?style=for-the-badge)](https://www.promptfoo.dev)
+[![GitHub Actions](https://img.shields.io/badge/CI-221%20Tests%20Passing-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](.github/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+
+<p align="center">
+  <b>Benchmark conversational AI &bull; Catch prompt &amp; tool-call regressions &bull; Enforce zero-tolerance security validators &bull; Gate production releases automatically</b>
+</p>
+
+[Key Features](#-key-features) •
+[Live Regression Demo](#-built-in-benchmark-bharathome-v1-vs-v2) •
+[Architecture](#-system-architecture) •
+[Evaluation Engines](#-multi-layer-evaluation-pipeline) •
+[Getting Started](#-getting-started) •
+[API Reference](#-rest-api-reference) •
+[CI & Testing](#-testing--ci-pipeline)
+
+</div>
 
 ---
 
-## Architecture Overview
+## 📌 Executive Summary
+
+**Aegis** is a full-stack, production-minded **LLM Evaluation, Security Validation & Release Quality-Gating Platform**. Built for AI engineers, QA teams, and platform leads, Aegis brings the rigor of traditional software CI/CD testing—unit assertions, regression diffs, security scanners, and automated release gates—to non-deterministic conversational AI assistants.
+
+Shipping a prompt tweak, swapping an LLM model, or updating a RAG pipeline in production without systematic evaluation leads to silent regressions: broken JSON schemas, hallucinated specifications, missed tool calls, or leaked PII and system prompts. Aegis solves this with an integrated, zero-cost-capable evaluation harness:
+
+1. **Deterministic & Zero-Cost Baseline**: Evaluates outputs in milliseconds with **zero external API cost** via exact/token matchers, tool-call verification, and 5 deterministic Python security validators—making every PR test suite fast and 100% reproducible.
+2. **Defense-in-Depth AI Security**: Scans every response for PII leakage (with **automatic evidence masking** for Email, Indian Mobile, Aadhaar, and PAN), canary secret exfiltration, shell/system injection patterns, stack trace leaks, and policy boundary violations—plus **Promptfoo CLI** adversarial jailbreak suites.
+3. **Optional LLM-as-a-Judge & RAG Metrics**: Plugs seamlessly into **DeepEval** (Faithfulness, Answer Relevancy, Hallucination, Technical Safety) and **Ragas** (Context Precision, Context Recall, Faithfulness) using either a local **Ollama** instance or any **OpenAI-compatible** endpoint.
+4. **Assistant Version Comparison & Release Quality Gate**: Diffs candidate runs against production baselines on the same golden dataset, calculates metric deltas and latency percentiles, and emits an auditable **PASS / FAIL** release decision with zero-tolerance security enforcement.
+5. **Reproducible Out-of-the-Box Benchmark**: Ships with a complete **40-case BharatHome Support Golden Dataset** and paired `v1.0.0-good` vs. `v2.0.0-broken` mock assistants so anyone can experience live regression detection and quality-gate blocking immediately—without GPUs or API keys.
+
+---
+
+## ⚡ Key Features
+
+<table>
+  <tr>
+    <td width="50%">
+      <h3>🧪 Multi-Engine Evaluation Orchestrator</h3>
+      <ul>
+        <li>15 registered evaluators across 4 layers (Deterministic, Security, DeepEval, Ragas).</li>
+        <li>Asynchronous execution worker with configurable concurrency and fail-fast support.</li>
+        <li>Supports single-turn, multi-turn conversation history, and structured tool-call schema validation.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🛡️ Deterministic Security &amp; PII Guardrails</h3>
+      <ul>
+        <li>Detects leaked Emails, Phone numbers (<code>+91</code>/10-digit), Aadhaar, and PAN patterns—and masks violations before persistence.</li>
+        <li>Catches canary token leakage, API keys/bearer tokens, shell commands, and raw stack traces.</li>
+        <li>Integrates <b>Promptfoo CLI</b> for automated jailbreak, prompt injection, and adversarial testing.</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>🚦 Automated Release Quality Gate</h3>
+      <ul>
+        <li>Enforces configurable release thresholds before any prompt or model change reaches production.</li>
+        <li>Checks minimum pass rate, maximum permitted regression delta, and mandatory metric coverage.</li>
+        <li><b>Zero-tolerance security policy</b>: any security regression immediately triggers a <code>FAIL</code> gate decision.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>📊 Version Comparison &amp; Telemetry</h3>
+      <ul>
+        <li>Side-by-side comparison of baseline vs. candidate runs against the exact same golden dataset.</li>
+        <li>Surfaces per-metric score deltas, newly introduced case regressions, and latency shifts.</li>
+        <li>Persists full prompt snapshots, model outputs, tool traces, and diagnostics in PostgreSQL.</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>🔌 Pluggable Assistant Adapter Layer</h3>
+      <ul>
+        <li><code>mock</code>: Zero-cost, deterministic offline adapter for CI/CD and regression demos.</li>
+        <li><code>ollama</code>: Private local LLM execution for offline benchmarking and model judging.</li>
+        <li><code>http</code>: OpenAI-compatible Chat Completions endpoint adapter for cloud or hosted models.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🖥️ 9-View React 19 Management Console</h3>
+      <ul>
+        <li><b>Overview Dashboard</b> with pass-rate trends, KPI cards, and security posture breakdown.</li>
+        <li><b>Run Inspector</b>, <b>Golden Dataset Manager</b> (JSON import/export), and <b>Security Intelligence</b> logs.</li>
+        <li>Dedicated <b>Version Comparison</b> and <b>Release Quality Gate</b> interactive decision views.</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🚀 Built-in Benchmark: BharatHome v1 vs. v2
+
+You don't need an OpenAI key or local GPU to evaluate Aegis in action. Aegis includes a complete, realistic customer-support benchmark (**BharatHome Appliances**) spanning **40 golden test cases across 8 categories**, complete with a knowledge base, 4 tool schemas (`product_lookup`, `warranty_lookup`, `troubleshooting_lookup`, `create_service_request`), and two contrasting assistant configurations:
+
+```
+┌─────────────────────────────────┬──────────────────────────┬──────────────────────────────────────────────────────┐
+│ Target Assistant                │ Provider / Mode          │ Behavior & Evaluation Outcome                        │
+├─────────────────────────────────┼──────────────────────────┼──────────────────────────────────────────────────────┤
+│ ✅ BharatHome v1 (Production)   │ mock (v1.0.0-good)       │ Grounded in official KB, invokes correct tool schemas│
+│                                 │ temperature: 0.0         │ refuses interlock bypasses, admits unlisted products │
+│                                 │                          │ ──▶ Passes Quality Gate (PASS)                       │
+├─────────────────────────────────┼──────────────────────────┼──────────────────────────────────────────────────────┤
+│ ❌ BharatHome v2 (Regression)   │ mock (v2.0.0-broken)     │ Simulates 6 classic LLM production failures:         │
+│                                 │ temperature: 0.9         │ • Specification hallucination (invented 650L specs)  │
+│                                 │                          │ • Warranty misrepresentation (fake 25-yr lifetime)     │
+│                                 │                          │ • Safety violations (hazardous interlock bypasses)   │
+│                                 │                          │ • Unlisted product policy invention                  │
+│                                 │                          │ • Erroneous troubleshooting & wrong tool selection   │
+│                                 │                          │ ──▶ Caught by Aegis & Blocked (FAIL)                 │
+└─────────────────────────────────┴──────────────────────────┴──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏗️ System Architecture
+
+Aegis separates API orchestration, asynchronous evaluation workers, pluggable assistant adapters, multi-layer evaluators, and relational persistence cleanly across its backend and React TypeScript frontend:
 
 ```mermaid
 flowchart TD
     subgraph UI ["Frontend (React 19 + TypeScript + Vite)"]
         Dash["Overview Dashboard"]
+        ProjectsUI["Projects & Assistants"]
         Datasets["Golden Datasets & Test Cases"]
-        Runs["Evaluation Execution & Inspector"]
-        Security["Security Intelligence Dashboard"]
+        Runs["Test Runs & Case Inspector"]
+        Security["Security Intelligence"]
         Compare["Version Comparison"]
         Gate["Release Quality Gate"]
-        SettingsUI["System Settings"]
     end
 
-    subgraph API ["Backend API (FastAPI)"]
-        ProjectsRoute["/api/projects"]
-        AssistantsRoute["/api/assistants"]
-        DatasetsRoute["/api/datasets"]
-        EvalsRoute["/api/evaluations"]
-        SecurityRoute["/api/dashboard/security"]
-        CompareRoute["/api/evaluations/compare"]
-        GateRoute["/api/evaluations/release-gate"]
+    subgraph API ["Backend API Gateway (FastAPI)"]
+        CoreRoutes["/api/projects & /api/assistants"]
+        DatasetRoutes["/api/datasets & /api/test-cases"]
+        EvalRoutes["/api/evaluations, /compare & /release-gate"]
+        DashRoutes["/api/dashboard/*"]
+        DemoRoutes["/api/demo/*"]
     end
 
-    subgraph Core ["Evaluation Engine & Adapters"]
-        Executor["Evaluation Context & Execution Worker"]
-        
-        subgraph Adapters ["Assistant Adapter Layer"]
-            MockAdapter["Mock Assistant Adapter (Zero-Cost Offline)"]
-            HttpAdapter["OpenAI-Compatible Chat Completions"]
-            OllamaAdapter["Local Ollama Adapter"]
+    subgraph Core ["Evaluation Engine & Adapter Layer"]
+        Orchestrator["Async Evaluation Worker & Context Builder"]
+
+        subgraph Adapters ["Assistant Adapters"]
+            MockAdapter["Mock Adapter (Zero-Cost Offline)"]
+            OllamaAdapter["Ollama Adapter (Local LLMs)"]
+            HttpAdapter["HTTP Adapter (OpenAI-Compatible)"]
         end
 
-        subgraph Evaluators ["Evaluation Engines"]
-            Deterministic["Deterministic Evaluators (Exact, Contains, Levenshtein)"]
-            SecurityEngine["Deterministic Security Validators (PII, Canary, Escapes, Policy)"]
-            PromptfooEngine["Promptfoo CLI (Adversarial, Jailbreak & Injection Testing)"]
-            DeepEvalEngine["DeepEval (Optional Model Judge: Faithfulness, Hallucination)"]
-            RagasEngine["Ragas (Optional Model Judge: Context Precision, Recall)"]
+        subgraph Evaluators ["15 Registered Evaluators + Promptfoo"]
+            Deterministic["Deterministic (Exact, Contains, Tool Usage)"]
+            SecurityEngine["Security Validators (PII, Canary, Forbidden, Policy, JSON)"]
+            PromptfooEngine["Promptfoo CLI (Jailbreak & Prompt Injection)"]
+            JudgeEngines["Optional LLM Judges (DeepEval & Ragas)"]
         end
     end
 
-    subgraph Storage ["Persistence Layer (PostgreSQL 16 + SQLAlchemy)"]
-        M1[("Projects & AssistantVersions")]
-        M2[("Golden Datasets & TestCases")]
-        M3[("EvaluationRuns & CaseResults")]
-        M4[("MetricResults & Diagnostic Details")]
+    subgraph Storage ["Persistence Layer (PostgreSQL 16 + SQLAlchemy 2.0)"]
+        DB1[("Projects & AssistantVersions")]
+        DB2[("Datasets & TestCases (Context + Tags)")]
+        DB3[("EvaluationRuns & CaseResults")]
+        DB4[("MetricResults & Masked Diagnostics")]
     end
 
-    UI -->|REST API / JSON| API
+    UI -->|REST JSON| API
     API --> Core
     Core --> Storage
     API --> Storage
 ```
 
-### End-to-End Evaluation Flow
-1. **Dataset Ingestion**: Curate or import golden test cases containing prompts, ground truth, retrieval context, and validation tags.
-2. **Execution Worker**: Asynchronously dispatches test cases against target assistant versions (mock, local, or HTTP providers) with configurable worker concurrency and fail-fast options.
-3. **Multi-Engine Evaluation**: Runs deterministic string/regex checks, security validators, and optional model judges against model outputs.
-4. **Relational Persistence**: Captures latency, prompt snapshots, output texts, metric scores, and pass/fail states in PostgreSQL.
-5. **Comparison & Quality Gating**: Analyzes deltas between candidate and baseline runs, surfaces regressions, and enforces automated release decisions.
+### End-to-End Evaluation & Release Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Engineer as AI Engineer / QA
+    participant Web as Aegis Console
+    participant API as FastAPI Backend
+    participant Worker as Async Eval Worker
+    participant Target as Assistant Adapter
+    participant Suite as Security & Evaluators
+    participant DB as PostgreSQL 16
+
+    Engineer->>Web: Select Candidate Assistant & Golden Dataset
+    Web->>API: POST /api/evaluations (concurrency, enable_security)
+    API->>DB: Persist EvaluationRun (status: pending)
+    API-->>Web: 202 Accepted (Run UUID)
+
+    par Concurrent Case Execution
+        Worker->>DB: Load active TestCases & retrieval context
+        Worker->>Target: Dispatch multi-turn messages & tool schemas
+        Target-->>Worker: Assistant response, tool calls & latency_ms
+        Worker->>Suite: Run Deterministic, Security & Judge Evaluators
+        Suite-->>Worker: Pass/Fail scores & masked diagnostic metadata
+        Worker->>DB: Persist CaseResult & MetricResults
+    end
+
+    Engineer->>Web: Compare Candidate vs. Baseline Run
+    Web->>API: POST /api/evaluations/compare
+    API-->>Web: Aggregate deltas, regressions & latency percentiles
+
+    Engineer->>Web: Evaluate Release Readiness
+    Web->>API: POST /api/evaluations/release-gate
+    API-->>Web: Rule-by-rule PASS / FAIL Gate Decision
+```
 
 ---
 
-## Key Capabilities
+## 🎯 Multi-Layer Evaluation Pipeline
 
-### 1. Golden Dataset Management
-- Centralized test suites with multi-category test cases.
-- Comprehensive test case schemas: user messages, expected outputs, retrieval context, ground-truth context, tags, and metadata.
-- Full JSON import/export and batch enable/disable toggle.
-- Bundled **BharatHome Customer Support** golden dataset (40 real-world appliance support test cases across 8 categories).
+Aegis resolves evaluators dynamically per run via `resolve_evaluators()` in [`backend/app/evaluation/evaluators/registry.py`](backend/app/evaluation/evaluators/registry.py), supporting **15 registered evaluators** plus **Promptfoo CLI**:
 
-### 2. Deterministic Zero-Cost Evaluation
-- Zero latency, zero external API costs, and 100% reproducible test execution.
-- Evaluators include Exact Match, Case-Insensitive Token Containment, Forbidden Lexicons, and Levenshtein Normalized Similarity.
+| Layer | Evaluator Key | What It Validates | External LLM Cost |
+|:---|:---|:---|:---:|
+| **Deterministic** | `response_presence` | Ensures non-empty, valid assistant generation | Zero |
+| **Deterministic** | `expected_output` | Exact match, token containment, and forbidden lexicons | Zero |
+| **Deterministic** | `tool_usage` | Tool-call selection, schema conformance, and argument accuracy | Zero |
+| **Security** | `security_pii` | Detects Email, Indian Mobile (`+91`/10-digit), Aadhaar & PAN leaks (auto-masked) | Zero |
+| **Security** | `security_canary` | Verifies confidential system-prompt canary tokens are never leaked | Zero |
+| **Security** | `security_forbidden_content` | Flags system file probes, shell execution strings & restricted keywords | Zero |
+| **Security** | `security_structured_response` | Validates JSON syntax, required keys, and strict schema compliance | Zero |
+| **Security** | `security_policy` | Enforces domain boundaries, safety refusals, and technical secret hygiene | Zero |
+| **Adversarial** | `Promptfoo CLI` | Runs 13 assertions for jailbreaks, prompt injections, and abusive defusing | Zero (with Mock) |
+| **Model Judge** *(Opt)* | `deepeval_*` *(4 metrics)* | Answer Relevancy, Faithfulness, Hallucination & Technical Safety | Local / API |
+| **RAG Judge** *(Opt)* | `ragas_*` *(3 metrics)* | Context Precision, Context Recall & RAG Faithfulness | Local / API |
 
-### 3. Lightweight Security Validators
-Fast, deterministic Python security checks that operate without downloading LLM weights or calling external services:
-- **PII Detection**: Detects email addresses, Indian mobile numbers (`+91`, `0`, or 10-digit formats), and Aadhaar patterns.
-- **Canary Token Leakage**: Verifies that confidential system prompt canary tokens are never leaked in assistant responses.
-- **Forbidden Content & Injection**: Catches system file accesses, shell execution attempts, and sensitive prompt keywords.
-- **Technical Safety**: Detects API keys, bearer tokens, connection strings, shell syntax, and internal stack traces.
-- **Policy Compliance**: Validates adherence to out-of-domain boundaries and competitor product disclaimers.
-
-### 4. Adversarial & Prompt Testing (Promptfoo Integration)
-- Integrated CLI execution of `promptfoo` via asynchronous Python subprocessing.
-- Evaluates 13 assertions covering normal inquiries, expected outputs, jailbreak defense, prompt injection resistance, and abusive input defusing.
-- Automatic redaction of API keys, bearer tokens, and connection strings from logs and outputs.
-
-### 5. Multi-Turn & Tool-Call Testing
-- Evaluates multi-turn context retention, conversation history ordering, and prompt instruction following.
-- Verifies tool-call schema conformance, parameter extraction, and execution validation.
-
-### 6. Assistant Version Comparison Engine
-- Compares two completed evaluation runs against the same dataset.
-- Computes aggregate score deltas, metric-by-metric changes, regression counts, and latency percentiles.
-
-### 7. Automated Release Quality Gate
-- Automated policy engine for release approval or rejection.
-- Configurable release rules:
-  - Minimum candidate pass rate (e.g. 90%).
-  - Maximum allowable metric regression drop (e.g. 5%).
-  - Zero-tolerance security check enforcement (security regressions force immediate failure).
-  - Mandatory metric requirements.
-
-### 8. Model-Based Evaluation (DeepEval & Ragas — Optional)
-- **DeepEval Integration**: Faithfulness, Answer Relevancy, and Hallucination metrics.
-- **Ragas Integration**: RAG-specific Context Precision, Context Recall, and Faithfulness.
-- *Note*: Model-based evaluations are optional and disabled by default. When enabled, they can connect to a local Ollama daemon or OpenAI-compatible endpoint.
-
-### 9. Management Dashboard & Telemetry
-- **Overview**: Real-time evaluation KPIs, pass-rate trends, and security posture donuts.
-- **Projects & Assistants**: Register models, inspect system prompts, and organize evaluation runs.
-- **Test Runs & Inspector**: Filter runs, view case-by-case outputs, latency, and evaluator metric chips.
-- **Security Dashboard**: 5-category breakdown cards and detailed findings log.
-- **Settings**: Local execution defaults and telemetry monitoring.
-
-### 10. Continuous Integration (GitHub Actions)
-- Automated pipeline running backend unit tests, frontend build/typecheck, and Promptfoo evaluations in parallel on push and pull requests.
+### Release Quality Gate Rules
+The automated gate engine ([`backend/app/evaluation/quality_gate.py`](backend/app/evaluation/quality_gate.py)) enforces configurable release policies before approving a candidate assistant version:
+- **Minimum Candidate Pass Rate**: Rejects candidates falling below the target pass threshold (e.g., `90%`).
+- **Maximum Regression Drop**: Fails if aggregate score drops beyond the permitted delta vs. baseline.
+- **Zero-Tolerance Security Regressions**: Any newly introduced security failure immediately blocks release.
+- **Maximum Security Failures & Mandatory Metrics**: Verifies required evaluators ran cleanly across all applicable cases.
 
 ---
 
-## Technology Stack
+## 💻 Tech Stack
 
-| Layer | Technologies |
-|---|---|
-| **Frontend** | React 19, TypeScript, Vite, Lucide React, Modern CSS Grid/Flexbox |
-| **Backend API** | FastAPI, Pydantic v2, Python 3.12, Uvicorn, Python-Dotenv |
-| **Database & ORM** | PostgreSQL 16, SQLAlchemy 2.0, Alembic, Psycopg 3 |
-| **Evaluation Engines** | Promptfoo CLI (v0.120+), DeepEval (v4.3+), Ragas (v0.2+) |
-| **CI / CD** | GitHub Actions (`actions/checkout@v4`, `actions/setup-python@v5`, `actions/setup-node@v4`) |
+| Layer | Technologies | Purpose |
+|:---|:---|:---|
+| **Frontend** | **React 19, TypeScript, Vite, Lucide React** | Responsive 9-view management console with strict TS types |
+| **Backend API** | **Python 3.12, FastAPI, Pydantic v2, Uvicorn** | Asynchronous REST API, OpenAPI docs, and background job dispatch |
+| **Database & ORM** | **PostgreSQL 16, SQLAlchemy 2.0, Alembic, Psycopg 3** | Relational storage, versioned schema migrations, and JSONB diagnostics |
+| **Evaluation & AI** | **Promptfoo (`0.120.19`), DeepEval (`4.3.3`), Ragas (`0.2.15`)** | Adversarial red-teaming, LLM-as-a-Judge, and RAG context evaluation |
+| **Infra & CI/CD** | **Docker Compose, GitHub Actions** | Single-command stack provisioning and automated 3-job CI pipeline |
 
 ---
 
-## Project Structure
+## 📂 Project Structure
 
 ```text
 Aegis/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                 # GitHub Actions CI pipeline
+├── .github/workflows/
+│   └── ci.yml                       # 3-job CI pipeline (Backend 221 tests, Frontend build, Promptfoo)
 ├── backend/
 │   ├── app/
-│   │   ├── adapters/              # Mock, Ollama, and HTTP assistant adapters
-│   │   ├── api/routes/            # FastAPI endpoints (projects, assistants, datasets, evaluations)
-│   │   ├── core/                  # Settings and application configuration
-│   │   ├── db/                    # SQLAlchemy database session and base
-│   │   ├── demo/                  # BharatHome assistant orchestrator (v1 good / v2 broken)
-│   │   ├── evaluation/            # Core executor, comparison, quality gate, and evaluators
-│   │   │   ├── deepeval/          # DeepEval adapter integration
-│   │   │   ├── ragas/             # Ragas RAG evaluation engine
-│   │   │   ├── promptfoo/         # Promptfoo CLI runner & secret redaction
-│   │   │   └── security/          # Deterministic security validators (PII, Canary, Safety)
-│   │   ├── models/                # SQLAlchemy models (Project, AssistantVersion, Dataset, etc.)
-│   │   └── schemas/               # Pydantic v2 request/response schemas
-│   ├── migrations/                # Alembic schema migrations
-│   ├── promptfoo/                 # Promptfoo YAML config and custom Python provider
-│   ├── scripts/                   # Seeding, verification, and benchmark scripts
-│   ├── tests/                     # 221 automated unit and integration tests
-│   └── requirements.txt           # Pinned backend dependencies
+│   │   ├── adapters/                # Pluggable Mock, Ollama, and OpenAI-compatible HTTP adapters
+│   │   ├── api/routes/              # FastAPI routers (projects, assistants, datasets, evaluations, dashboard)
+│   │   ├── core/                    # Environment settings & application config
+│   │   ├── db/                      # SQLAlchemy 2.0 session & declarative base
+│   │   ├── demo/                    # BharatHome v1 (good) vs v2 (broken) assistant & tool simulator
+│   │   ├── evaluation/              # Executor, orchestrator, version comparison & release quality gate
+│   │   │   ├── evaluators/          # Deterministic evaluators & central 15-evaluator registry
+│   │   │   ├── security/            # PII (masked), Canary, Forbidden Content, Policy & JSON validators
+│   │   │   ├── promptfoo/           # Async Promptfoo CLI runner with automatic secret redaction
+│   │   │   ├── deepeval/            # Optional DeepEval LLM-as-a-Judge integration
+│   │   │   └── ragas/               # Optional Ragas RAG context precision/recall integration
+│   │   ├── models/                  # SQLAlchemy ORM models
+│   │   └── schemas/                 # Pydantic v2 request/response contracts
+│   ├── migrations/                  # Alembic database migrations
+│   ├── promptfoo/                   # Promptfoo YAML config & Python provider bridge
+│   ├── scripts/                     # Golden dataset & assistant seeders, validation benchmarks
+│   ├── tests/                       # 15 test modules (221 automated unit & integration tests)
+│   ├── Dockerfile
+│   └── requirements.txt
 ├── docs/
-│   └── screenshots/               # Application showcase documentation and screenshots
+│   └── screenshots/                 # Showcase screenshot guide & visual specifications
 ├── frontend/
+│   ├── public/data/                 # Bundled BharatHome golden dataset JSON
 │   ├── src/
-│   │   ├── api/                   # Typed API client services
-│   │   ├── components/            # React UI components (Dashboard, Datasets, Runs, Security, etc.)
-│   │   ├── types/                 # TypeScript interfaces and response schemas
-│   │   ├── App.tsx                # Main application shell and sidebar navigation
-│   │   └── styles.css             # Unified SaaS design styles
-│   ├── package.json
-│   └── vite.config.ts
-├── docker-compose.yml             # Full-stack container orchestration
-├── .gitignore                     # Repository hygiene exclusions
+│   │   ├── api/                     # Typed REST API client wrappers
+│   │   ├── components/              # 9 UI views (Overview, Runs, Security, Compare, QualityGate, etc.)
+│   │   ├── types/                   # TypeScript domain interfaces
+│   │   ├── App.tsx                  # Shell navigation & live backend health polling
+│   │   └── styles.css               # Unified SaaS design system
+│   ├── Dockerfile
+│   └── package.json
+├── docker-compose.yml               # Full-stack PostgreSQL 16 + FastAPI + Vite container setup
+├── .env.example                     # Root environment variable template
 └── README.md
 ```
 
 ---
 
-## Getting Started
+## 🛠️ Getting Started
 
-### Prerequisites
-- **Python**: 3.12+
-- **Node.js**: 20+ (with npm)
-- **PostgreSQL**: 16 (Local or via Docker)
+### Option A: One-Command Docker Compose (Fastest)
+```bash
+git clone https://github.com/aasimkhan02/Aegis.git
+cd Aegis
+cp .env.example .env
+docker compose up --build
+```
+- **Frontend Console**: `http://localhost:5173`
+- **Backend API & Swagger Docs**: `http://localhost:8000/docs`
 
 ---
 
-### Step 1: Clone and Configure Environment
+### Option B: Local Development Setup
 
-```bash
-git clone https://github.com/your-username/aegis.git
-cd aegis
-```
+#### Prerequisites
+- **Python 3.12+**
+- **Node.js 20+** (with npm)
+- **PostgreSQL 16**
 
-Create the environment file for the backend:
+#### 1. Configure Backend & Database
 ```bash
+git clone https://github.com/aasimkhan02/Aegis.git
+cd Aegis
 cp backend/.env.example backend/.env
 ```
 
-Ensure `backend/.env` has your PostgreSQL connection string:
-```env
-DATABASE_URL=postgresql+psycopg://postgres:your_password@localhost:5432/aegis
-CORS_ORIGINS=http://localhost:5173
-```
-
----
-
-### Step 2: Database Setup & Migrations
-
-If running PostgreSQL locally, create the database:
+Create the PostgreSQL database and apply Alembic migrations:
 ```sql
 CREATE DATABASE aegis;
 ```
 
-Run Alembic schema migrations:
 ```bash
 cd backend
 python -m venv .venv
@@ -234,126 +351,98 @@ pip install -r requirements.txt
 alembic upgrade head
 ```
 
-*(Optional)* Seed the BharatHome Golden Dataset:
+#### 2. Seed the Built-in BharatHome Benchmark *(Recommended)*
+Load the 40-case golden dataset and both `v1.0.0-good` and `v2.0.0-broken` assistant versions:
 ```bash
 python scripts/seed_golden_dataset.py
+python scripts/seed_assistant_versions.py
 ```
 
----
-
-### Step 3: Start the Backend Service
-
+#### 3. Start Backend & Frontend
 ```bash
-# From within backend/ with .venv active:
+# Terminal 1 (from backend/ with .venv active):
 uvicorn app.main:app --reload --port 8000
-```
-- API Docs: http://localhost:8000/docs
-- Health Check: http://localhost:8000/health
 
----
-
-### Step 4: Start the Frontend Application
-
-In a separate terminal:
-```bash
+# Terminal 2 (from frontend/):
 cd frontend
 npm install
 npm run dev
 ```
-Open **http://localhost:5173** in your browser.
+Open **`http://localhost:5173`** in your browser (Swagger API documentation is available at **`http://localhost:8000/docs`**).
 
 ---
 
-## Example Evaluation Workflow
+## 🔌 REST API Reference
 
-Here is how to run an end-to-end evaluation cycle using the UI or API:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as AI Engineer / QA
-    participant Web as Aegis Dashboard
-    participant API as FastAPI Backend
-    participant Worker as Evaluation Worker
-    participant Mock as BharatHome Assistant
-    participant Engine as Security & Evaluators
-    participant DB as PostgreSQL
-
-    User->>Web: 1. Select Assistant Version & Golden Dataset
-    Web->>API: 2. POST /api/evaluations (config: concurrency=2, enable_security=true)
-    API->>DB: 3. Create EvaluationRun (status: pending)
-    API-->>Web: 4. 202 Accepted (Run UUID)
-    
-    par Async Evaluation
-        Worker->>DB: Fetch test cases
-        Worker->>Mock: Dispatch prompt messages
-        Mock-->>Worker: Assistant response
-        Worker->>Engine: Run deterministic & security validators
-        Engine-->>Worker: Metric scores & violation diagnostic
-        Worker->>DB: Persist CaseResult & MetricResults
-    end
-
-    User->>Web: 5. Inspect Run Results
-    Web->>API: GET /api/evaluations/{id}/results
-    API-->>Web: Case scores, latency, input/output snapshots
-
-    User->>Web: 6. Compare Candidate vs Baseline
-    Web->>API: POST /api/evaluations/compare
-    API-->>Web: Score deltas & detected regressions
-
-    User->>Web: 7. Run Quality Gate Check
-    Web->>API: POST /api/evaluations/release-gate (min_pass_rate=90%)
-    API-->>Web: Gate Decision: PASS or FAIL with diagnostic reasons
-```
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `GET` | `/health` | Service health check |
+| `GET` | `/api/dashboard/overview` | Workspace KPIs, pass-rate trend, and recent runs |
+| `GET` | `/api/dashboard/security` | 5-category security posture breakdown and masked findings |
+| `GET / POST` | `/api/projects` | List or register AI evaluation projects |
+| `GET / POST` | `/api/assistants` | List or register assistant versions (`mock`, `ollama`, `http`) |
+| `GET / POST` | `/api/datasets` | Manage golden datasets (plus `/import` & `/export` JSON routes) |
+| `POST` | `/api/evaluations` | Dispatch an asynchronous evaluation run (`202 Accepted`) |
+| `POST` | `/api/evaluations/promptfoo` | Execute Promptfoo adversarial suite against an assistant version |
+| `POST` | `/api/evaluations/compare` | Compare baseline vs. candidate runs for score & latency deltas |
+| `POST` | `/api/evaluations/release-gate` | Run automated Release Quality Gate and return `PASS` / `FAIL` |
+| `GET` | `/api/evaluations/{run_id}/results` | Inspect per-case outputs, latency, and evaluator metric chips |
 
 ---
 
-## Testing & CI Pipeline
+## 🧪 Testing & CI Pipeline
 
-### Running Backend Tests
-The backend test suite contains **221 unit and integration tests** executing in ~7.5 seconds:
+Aegis enforces strict quality standards across every layer with **221 automated backend unit and integration tests**, **TypeScript/Vite build checks**, and **Promptfoo adversarial assertions**.
 
-```bash
-# Run the complete test suite from repository root:
+### Run Backend Test Suite
+```powershell
+# Windows PowerShell (from repository root):
 $env:PYTHONPATH='backend'; python -m unittest discover -s backend/tests -p "test_*.py" -v
 ```
-
-### Running Promptfoo Evaluation
-Run the deterministic Promptfoo test suite (13 assertions across normal, jailbreak, injection, and defusing cases):
-
 ```bash
+# macOS / Linux (from repository root):
+PYTHONPATH=backend python -m unittest discover -s backend/tests -p "test_*.py" -v
+```
+
+### Run Promptfoo Adversarial Suite
+```powershell
 # Windows PowerShell:
 $env:PROMPTFOO_DISABLE_UPDATE='true'; $env:PROMPTFOO_DISABLE_TELEMETRY='true'; $env:AEGIS_ASSISTANT_VERSION='v1'; $env:AEGIS_ASSISTANT_PROVIDER='mock'; npx --yes promptfoo@0.120.19 eval -c backend/promptfoo/promptfooconfig.yaml --no-cache
-
+```
+```bash
 # macOS / Linux:
 PROMPTFOO_DISABLE_UPDATE=true PROMPTFOO_DISABLE_TELEMETRY=true AEGIS_ASSISTANT_VERSION=v1 AEGIS_ASSISTANT_PROVIDER=mock npx --yes promptfoo@0.120.19 eval -c backend/promptfoo/promptfooconfig.yaml --no-cache
 ```
 
-### Building Frontend
+### Build & Typecheck Frontend
 ```bash
 cd frontend
-npm run build
-# Runs: tsc -b && vite build
+npm run build   # Runs: tsc -b && vite build
 ```
 
-### GitHub Actions CI
-The workflow in `.github/workflows/ci.yml` runs on every push and PR to `main`:
-- **`backend`**: Spins up a PostgreSQL 16 service container, applies migrations, and executes all 221 tests.
-- **`frontend`**: Validates strict TypeScript compilation and Vite production bundling.
-- **`promptfoo`**: Executes the deterministic prompt and adversarial assertions against the assistant adapter.
+### Continuous Integration (`.github/workflows/ci.yml`)
+Every push and pull request to `main` triggers three parallel GitHub Actions jobs:
+1. **`backend`**: Provisions a live PostgreSQL 16 service container, runs Alembic migrations, and executes all 221 tests.
+2. **`frontend`**: Verifies strict TypeScript compilation (`tsc -b`) and Vite production bundling.
+3. **`promptfoo`**: Executes all 13 Promptfoo assertions (normal, expected output, jailbreak, prompt injection, and defusing) against the assistant adapter.
 
 ---
 
-## Known Limitations
+## 🔍 Engineering Design Tradeoffs & Scope
 
-Aegis is engineered as a robust, transparent evaluation harness, not an opaque autonomous AI security barrier:
-1. **Deterministic Rule Constraints**: Regex and keyword-based security detection cannot catch novel, heavily obfuscated, or semantically subtle prompt injections that do not match defined patterns.
-2. **Mock Assistant Scope**: The offline mock assistant uses rule-based responses for predictable, reproducible benchmarks without requiring GPU infrastructure. Evaluating live LLMs requires configuring OpenAI API keys or a local Ollama instance.
-3. **Model-Based Judging Overhead**: DeepEval and Ragas evaluation metrics require an LLM judge (such as `qwen2.5` via Ollama or `gpt-4o-mini`). They are intentionally optional to keep default CI and test cycles fast, free, and deterministic.
-4. **Historical Database in CI**: Ephemeral CI runners test release quality gate logic with isolated test fixtures, but cannot evaluate against long-term production benchmark history without external persistent storage.
+Aegis is engineered as a transparent, auditable evaluation harness rather than a black-box AI wrapper:
+- **Zero-Cost Default CI**: Deterministic checks and regex/heuristic security validators run by default with zero GPU or paid API dependencies. DeepEval and Ragas model judges are opt-in per run via configuration flags.
+- **Masked Security Logging**: Sensitive patterns detected by `security_pii` (emails, phone numbers, Aadhaar, PAN) and `Promptfoo` secret scanners are masked/redacted prior to persistence so evaluation logs never become a secondary data leak.
+- **Deterministic vs. Semantic Tradeoff**: Fast deterministic validators catch known leakage, schema drift, and explicit policy violations reliably, while optional DeepEval/Ragas judges cover nuanced semantic hallucination and RAG faithfulness when a local Ollama or HTTP model judge is configured.
 
 ---
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<div align="center">
+  <sub>Built for reliable, regression-free, security-hardened AI systems &bull; Engineered by <a href="https://github.com/aasimkhan02">Aasim Khan</a></sub>
+</div>
